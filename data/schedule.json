@@ -1,0 +1,26 @@
+[
+  {
+    "time": "8:01",
+    "ampm": "PM",
+    "days": [0, 1, 2, 3, 4, 5, 6],
+    "switches": {
+      "1": true,
+      "2": true,
+      "3": true,
+      "4": true
+    },
+    "enabled": true
+  },
+  {
+    "time": "07:01",
+    "ampm": "AM",
+    "days": [0, 1, 2, 3, 4, 5, 6],
+    "switches": {
+      "1": false,
+      "2": false,
+      "3": false,
+      "4": false
+    },
+    "enabled": true
+  }
+]

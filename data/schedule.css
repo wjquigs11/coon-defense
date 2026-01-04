@@ -1,0 +1,531 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif;
+    background: #f5f5f5;
+    min-height: 100vh;
+    color: #333;
+}
+
+/* Header */
+.header {
+    background: white;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+    padding: 15px 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #333;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+}
+
+.header h1 {
+    font-size: 1.5rem;
+    font-weight: 500;
+}
+
+.back-btn {
+    background: none;
+    border: none;
+    color: #333;
+    font-size: 1.2rem;
+    cursor: pointer;
+    padding: 8px 12px;
+    position: absolute;
+    left: 20px;
+    font-family: Arial, sans-serif;
+    line-height: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 32px;
+    height: 32px;
+    border-radius: 6px;
+    transition: background-color 0.3s;
+}
+
+.back-btn:hover {
+    background-color: rgba(0, 0, 0, 0.1);
+}
+
+
+/* Bottom action buttons */
+.bottom-buttons {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: white;
+    padding: 20px;
+    box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.1);
+    display: flex;
+    justify-content: center;
+    gap: 20px;
+    z-index: 100;
+}
+
+.bottom-buttons .save-btn,
+.bottom-buttons .discard-btn {
+    background: none;
+    border: 2px solid;
+    font-size: 1rem;
+    cursor: pointer;
+    padding: 12px 24px;
+    border-radius: 25px;
+    transition: all 0.3s;
+    font-weight: 500;
+    min-width: 100px;
+}
+
+.bottom-buttons .save-btn {
+    color: #2196F3;
+    border-color: #2196F3;
+}
+
+.bottom-buttons .discard-btn {
+    color: #f44336;
+    border-color: #f44336;
+}
+
+.bottom-buttons .save-btn:hover {
+    background: #2196F3;
+    color: white;
+}
+
+.bottom-buttons .discard-btn:hover {
+    background: #f44336;
+    color: white;
+}
+
+/* Main content */
+.content {
+    padding: 0 20px 100px 20px;
+    max-width: 600px;
+    margin: 0 auto;
+}
+
+/* Schedule cards */
+.schedule-card {
+    background: white;
+    border-radius: 15px;
+    padding: 20px;
+    margin-bottom: 15px;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.schedule-info {
+    flex: 1;
+}
+
+.schedule-time {
+    font-size: 2rem;
+    font-weight: 300;
+    color: #333;
+    margin-bottom: 5px;
+}
+
+.schedule-details {
+    color: #666;
+    font-size: 0.9rem;
+    margin-bottom: 3px;
+}
+
+/* Toggle switch */
+.switch {
+    position: relative;
+    display: inline-block;
+    width: 30px !important; /* 50% smaller: 60px * 0.5 = 30px */
+    height: 17px !important; /* 50% smaller: 34px * 0.5 = 17px */
+}
+
+.switch input {
+    opacity: 0;
+    width: 0;
+    height: 0;
+}
+
+.slider {
+    position: absolute;
+    cursor: pointer;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: #ccc;
+    transition: .4s;
+    border-radius: 17px !important; /* 50% smaller: 34px * 0.5 = 17px */
+}
+
+.slider:before {
+    position: absolute;
+    content: "";
+    height: 13px !important; /* 50% smaller: 26px * 0.5 = 13px */
+    width: 13px !important; /* 50% smaller: 26px * 0.5 = 13px */
+    left: 2px !important; /* 50% smaller: 4px * 0.5 = 2px */
+    bottom: 2px !important; /* 50% smaller: 4px * 0.5 = 2px */
+    background-color: white;
+    transition: .4s;
+    border-radius: 50%;
+}
+
+input:checked + .slider {
+    background-color: #2196F3;
+}
+
+input:checked + .slider:before {
+    transform: translateX(13px) !important; /* 50% smaller: 26px * 0.5 = 13px */
+}
+
+/* Add schedule button */
+.add-schedule-btn {
+    background: white;
+    border: none;
+    border-radius: 15px;
+    padding: 20px;
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1rem;
+    color: #2196F3;
+    cursor: pointer;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+    margin-top: 20px;
+    transition: transform 0.2s;
+}
+
+.add-schedule-btn:hover {
+    transform: translateY(-2px);
+}
+
+.add-schedule-btn:before {
+    content: "+";
+    font-size: 1.5rem;
+    margin-right: 10px;
+}
+
+/* Edit Schedule Modal */
+.modal {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.5);
+    z-index: 1000;
+}
+
+.modal.active {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.modal-content {
+    background: white;
+    border-radius: 17px;
+    width: 76.5%;
+    max-width: 340px;
+    max-height: 76.5vh;
+    overflow-y: auto;
+    position: relative;
+}
+
+.modal-header {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    padding: 17px;
+    border-radius: 17px 17px 0 0;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.modal-header h2 {
+    font-size: 1.1rem;
+    font-weight: 500;
+}
+
+.close-btn {
+    background: none;
+    border: none;
+    color: white;
+    font-size: 1.3rem;
+    cursor: pointer;
+    padding: 4px;
+}
+
+.modal-body {
+    padding: 25.5px 17px;
+}
+
+/* Time picker */
+.time-picker {
+    text-align: center;
+    margin-bottom: 25.5px;
+}
+
+.time-display {
+    font-size: 2.55rem;
+    font-weight: 300;
+    color: #333;
+    margin-bottom: 17px;
+}
+
+.time-controls {
+    display: flex;
+    justify-content: center;
+    gap: 17px;
+    margin-bottom: 17px;
+}
+
+.time-input {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.time-input input {
+    width: 51px;
+    height: 51px;
+    border: 2px solid #e0e0e0;
+    border-radius: 8.5px;
+    text-align: center;
+    font-size: 1.28rem;
+    margin-bottom: 8.5px;
+}
+
+.time-input label {
+    font-size: 0.77rem;
+    color: #666;
+}
+
+.am-pm-toggle {
+    display: flex;
+    background: #f0f0f0;
+    border-radius: 21.25px;
+    padding: 4.25px;
+    margin: 0 auto;
+    width: fit-content;
+}
+
+.am-pm-toggle button {
+    background: none;
+    border: none;
+    padding: 8.5px 17px;
+    border-radius: 17px;
+    cursor: pointer;
+    transition: all 0.3s;
+}
+
+.am-pm-toggle button.active {
+    background: #2196F3;
+    color: white;
+}
+
+/* Day selector */
+.day-selector {
+    margin-bottom: 25.5px;
+}
+
+.day-selector h3 {
+    text-align: center;
+    margin-bottom: 17px;
+    color: #666;
+    font-size: 0.85rem;
+}
+
+.days-grid {
+    display: flex;
+    justify-content: center;
+    gap: 4px;
+    flex-wrap: nowrap;
+}
+
+.day-btn {
+    width: 28px;
+    height: 28px;
+    border: none;
+    border-radius: 50%;
+    background: #e0e0e0;
+    color: #666;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.3s;
+    font-size: 0.7rem;
+}
+
+.day-btn.active {
+    background: #667eea;
+    color: white;
+}
+
+/* Switch controls */
+.switch-controls {
+    margin-bottom: 25.5px;
+}
+
+.switch-control {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12.75px 0;
+    border-bottom: 1px solid #e0e0e0;
+}
+
+.switch-control:last-child {
+    border-bottom: none;
+}
+
+.switch-label {
+    font-size: 0.85rem;
+    color: #333;
+}
+
+.switch-state {
+    font-size: 0.77rem;
+    color: #666;
+    margin-left: 8.5px;
+}
+
+/* Action buttons */
+.action-buttons {
+    display: flex;
+    gap: 12.75px;
+    padding: 17px;
+    border-top: 1px solid #e0e0e0;
+}
+
+.btn {
+    flex: 1;
+    padding: 12.75px;
+    border: none;
+    border-radius: 8.5px;
+    font-size: 0.85rem;
+    cursor: pointer;
+    transition: all 0.3s;
+}
+
+.btn-secondary {
+    background: #f0f0f0;
+    color: #666;
+}
+
+.btn-primary {
+    background: #2196F3;
+    color: white;
+}
+
+.btn-danger {
+    background: #f44336;
+    color: white;
+}
+
+.btn:hover {
+    transform: translateY(-2px);
+}
+
+/* Responsive */
+@media (max-width: 480px) {
+    .content {
+        padding: 0 15px 120px 15px; /* Increased bottom padding for better button clearance */
+    }
+    
+    .schedule-time {
+        font-size: 1.5rem;
+    }
+    
+    .time-display {
+        font-size: 2.5rem;
+    }
+    
+    /* Improved modal action buttons for mobile */
+    .action-buttons {
+        gap: 8px;
+        padding: 12px;
+        flex-wrap: wrap;
+    }
+    
+    .btn {
+        padding: 10px 8px;
+        font-size: 0.8rem;
+        min-height: 44px; /* Ensure proper touch target size */
+        flex: 1;
+        min-width: 0; /* Allow buttons to shrink */
+    }
+    
+    /* Improved bottom action buttons for mobile */
+    .bottom-buttons {
+        padding: 15px;
+        gap: 12px;
+    }
+    
+    .bottom-buttons .save-btn,
+    .bottom-buttons .discard-btn {
+        padding: 10px 16px;
+        min-width: 80px;
+        font-size: 0.9rem;
+        flex: 1;
+    }
+}
+
+/* Extra small screens */
+@media (max-width: 360px) {
+    .content {
+        padding: 0 10px 130px 10px;
+    }
+    
+    /* Modal action buttons for very small screens */
+    .action-buttons {
+        gap: 6px;
+        padding: 10px;
+    }
+    
+    .btn {
+        padding: 8px 6px;
+        font-size: 0.75rem;
+        min-height: 44px;
+    }
+    
+    /* Bottom action buttons for very small screens */
+    .bottom-buttons {
+        padding: 12px;
+        gap: 10px;
+    }
+    
+    .bottom-buttons .save-btn,
+    .bottom-buttons .discard-btn {
+        padding: 8px 12px;
+        min-width: 70px;
+        font-size: 0.85rem;
+    }
+    
+    /* Ensure modal content doesn't get too wide on small screens */
+    .modal-content {
+        width: 90%;
+        margin: 10px;
+    }
+}
+
+/* Landscape orientation adjustments for small screens */
+@media (max-width: 640px) and (orientation: landscape) {
+    .bottom-buttons {
+        padding: 10px 15px;
+    }
+    
+    .bottom-buttons .save-btn,
+    .bottom-buttons .discard-btn {
+        padding: 8px 16px;
+        font-size: 0.85rem;
+    }
+}

@@ -51,7 +51,7 @@ String formatMacAddress(const String& macAddress) {
   return result;
 }
 
-String commandList[] = {"restart", "hostname", "status", "wifi", "conslog", "spiffs", "toggle", ""};
+String commandList[] = {"restart", "hostname", "status", "wifi", "conslog", "littlefs", "toggle", "timer", ""};
 String toggleList[] = {"debug", ""};
 //#define ASIZE(arr) (sizeof(arr) / sizeof(arr[0]))
 int ASIZE(String *arr) {
@@ -115,6 +115,17 @@ void WebSerialonMessage(uint8_t *data, size_t len) {
       digitalWrite(relayGPIO,LOW);
       return;
     }
+    if (words[i].startsWith("time")) {
+      if (!words[++i].isEmpty()) {
+        timerDelay = atoi(words[i].c_str());
+        if (timerDelay<100) timerDelay = 100;
+        coonPrefs.putInt("timerdelay", timerDelay);
+        log::toAll("timerDelay set to " + String(timerDelay));
+      } else {
+        log::toAll("timerDelay: " + String(timerDelay));
+      }
+      return;
+    }
     if (words[i].equals("restart")) {
       WebSerial.println("restarting...");
       ESP.restart();
@@ -126,10 +137,10 @@ void WebSerialonMessage(uint8_t *data, size_t len) {
     if (words[i].startsWith("host")) {
       if (!words[++i].isEmpty()) {
         host = words[i];
-        preferences.putString("hostname", host);
+        coonPrefs.putString("hostname", host);
         log::toAll("hostname set to " + host);
         log::toAll("restart to change hostname");
-        log::toAll("preferences " + preferences.getString("hostname"));
+        log::toAll("preferences " + coonPrefs.getString("hostname"));
       } else {
         log::toAll("hostname: " + host);
       }
@@ -157,13 +168,13 @@ void WebSerialonMessage(uint8_t *data, size_t len) {
       buf = String();
       return;
     }
-    // 'spiffs ls'
-    // 'spiffs status'
-    // 'spiffs format'
-    if (words[i].startsWith("spiffs")) {
+    // 'littlefs ls'
+    // 'littlefs status'
+    // 'littlefs format'
+    if (words[i].startsWith("littlefs")) {
       if (wordCount > 1) {
         if (words[++i].equals("ls")) {
-          File root = SPIFFS.open("/");
+          File root = LittleFS.open("/");
           File file = root.openNextFile();
           while (file) {
             WebSerial.println(file.name());
@@ -175,10 +186,10 @@ void WebSerialonMessage(uint8_t *data, size_t len) {
           return;
         }
         if (words[i].startsWith("status")) {
-          size_t totalBytes = SPIFFS.totalBytes();
-          size_t usedBytes = SPIFFS.usedBytes();
+          size_t totalBytes = LittleFS.totalBytes();
+          size_t usedBytes = LittleFS.usedBytes();
           float usedPercentage = ((float)usedBytes / totalBytes) * 100;
-          WebSerial.print("SPIFFS Total space: ");
+          WebSerial.print("LittleFS Total space: ");
           WebSerial.print(totalBytes);
           WebSerial.println(" bytes");
           WebSerial.print("Used space: ");
@@ -194,7 +205,7 @@ void WebSerialonMessage(uint8_t *data, size_t len) {
         }
         if (words[i].equals("read")) {
           if (wordCount > 2) {
-            File file = SPIFFS.open(words[++i]);
+            File file = LittleFS.open(words[++i]);
             if (!file || file.isDirectory()) {
               log::toAll("Failed to open wifi.txt for reading");
               return;
@@ -209,14 +220,14 @@ void WebSerialonMessage(uint8_t *data, size_t len) {
           return;
         }
         if (words[i].equals("format")) {
-          SPIFFS.format();
-          WebSerial.println("SPIFFS formatted");
+          LittleFS.format();
+          WebSerial.println("LittleFS formatted");
           return;
         }
       }
-      WebSerial.println("spiffs {ls|status|format}");
+      WebSerial.println("littlefs {ls|status|format}");
       return;
-    } // spiffs
+    } // littlefs
     if (words[i].startsWith("log")) {
       log::logToSerial = !log::logToSerial;
       log::toAll("serial log: " + String(log::logToSerial ? "on" : "off"));
@@ -242,7 +253,7 @@ void WebSerialonMessage(uint8_t *data, size_t len) {
     if (words[i].startsWith("conslog")) {
       if (wordCount > 1 && words[++i].startsWith("reset")) {
         consLog.close();
-        consLog = SPIFFS.open("/console.log", "w", true);
+        consLog = LittleFS.open("/console.log", "w", true);
         if (!consLog) {
           log::toAll("failed to open console log");
         }
@@ -250,7 +261,7 @@ void WebSerialonMessage(uint8_t *data, size_t len) {
         return;
       } else {
         // Print the last 20 lines of the console log file
-        File logFile = SPIFFS.open("/console.log", "r");
+        File logFile = LittleFS.open("/console.log", "r");
         if (!logFile) {
           log::toAll("Failed to open console log file");
           return;

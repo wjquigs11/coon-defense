@@ -1,6 +1,34 @@
 #ifdef WIFI
 #include "include-general.h"
 
+// Schedule data storage
+JsonDocument scheduleData;
+
+// Load schedules from LittleFS
+bool loadSchedules() {
+    if (!LittleFS.exists("/schedule.json")) {
+        log::toAll("Schedule file not found, creating default");
+        return false;
+    }
+    
+    File file = LittleFS.open("/schedule.json", "r");
+    if (!file) {
+        log::toAll("Failed to open schedule file");
+        return false;
+    }
+    
+    DeserializationError error = deserializeJson(scheduleData, file);
+    file.close();
+    
+    if (error) {
+        log::toAll("Failed to parse schedule JSON: " + String(error.c_str()));
+        return false;
+    }
+    
+    log::toAll("Schedules loaded successfully, count: " + String(scheduleData.size()));
+    return true;
+}
+
 // Schedule checking variables
 static bool scheduleStates[MAX_SCHEDULES]; // Track last triggered state for each schedule
 static bool scheduleStatesInitialized = false;

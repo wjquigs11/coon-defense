@@ -4,19 +4,12 @@
 bool serverStarted;
 JsonDocument readings;
 
-String host = "coondefense";
-
-String getSensorReadings() {
-  readings["sensor"] = "0";
-  String jsonString;
-  serializeJson(readings,jsonString);
-  return jsonString;
-}
+String host = "back";
 
 String getRelayState();
 
 // Replaces placeholder with button section in your web page
-String processor(const String& var) {
+String coon_processor(const String& var) {
   //Serial.println(var);
   if(var == "BUTTONPLACEHOLDER"){
     String buttons ="";
@@ -45,6 +38,34 @@ String getRelayState() {
     }
   }
   return "";
+}
+
+// Get Sensor Readings and return JSON object
+String getSensorReadings() {
+  // Clear previous readings to prevent nesting
+  readings.clear();
+  
+  int waterlevel = getWaterLevel();
+  readings["waterlevel"] = String(waterlevel);
+  readings["distanceInch"] = String(distanceInch);
+  readings["time"] = String(millis());
+  String jsonString;
+  serializeJson(readings,jsonString);
+  log::toAll(jsonString);
+  return jsonString;
+}
+
+String rain_processor(const String& var) {
+  log::toAll("processor: " + var);
+  if (var == "DISTANCEINCH")
+    return String(distanceInch,0);
+  if (var == "TANKTOP")
+    return String(tanktop, 2);
+  if (var == "TANKBOTTOM")
+    return String(tankbottom, 2);
+  if (var == "CAPACITY")
+    return String(capacity, 2);
+  return String();
 }
 
 #endif // WIFI

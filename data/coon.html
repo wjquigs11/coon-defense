@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>ESP32 Coon Timer</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+    <link rel="icon" type="image/png" href="favicon.png">
+    <link rel="stylesheet" type="text/css" href="style.css">
+    <script src="gauge.min.js"></script>
+    <!-- client-time.js will POST /clienttime to send browser time to ESP32 (one time only)-->
+    <script src="client-time.js"></script>    
+  </head>
+<body>
+  <h2>ESP Coon Timer</h2>
+  %BUTTONPLACEHOLDER%
+<script>function toggleCheckbox(element) {
+  var xhr = new XMLHttpRequest();
+  if(element.checked){ xhr.open("GET", "/relayupdate?relay="+element.id+"&state=1", true); }
+  else { xhr.open("GET", "/relayupdate?relay="+element.id+"&state=0", true); }
+  xhr.send();
+}</script>
+</body>
+</html>
+</html>

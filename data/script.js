@@ -1,74 +1,50 @@
-// Global variable for last time
+// Get current sensor readings when the page loads  
+window.addEventListener('load', getReadings);
+
+var container = document.getElementById('gauge-card');
+var size = container.offsetWidth;
 var lastTime;
 
-// Get current sensor readings and initialize gauge when the page loads
-window.addEventListener('load', function() {
-  // Initialize gauge
-  initializeGauge();
+var gaugeWater = new RadialGauge({
+    renderTo: 'gauge',
+    width: size,
+    height: size,
+    units: "Gallons",
+    minValue: 0,
+    maxValue: 800,
+    colorValueBoxRect: "#049faa",
+    colorValueBoxRectEnd: "#049faa",
+    colorValueBoxBackground: "#f1fbfc",
+    valueBox: true,
+    valueInt: 3,
+    valueDec: 0,
+    majorTicks: [
+        "0",
+        "100",
+        "200",
+        "300",
+        "400",
+        "500",
+        "600",
+        "700",
+        "800"
+    ],
+    minorTicks: 0,
+    strokeTicks: true,
+    colorPlate: "#fff",
+    borderShadowWidth: 0,
+    borders: false,
+    needleType: "line",
+    colorNeedle: "#007F80",
+    colorNeedleEnd: "#007F80",
+    needleWidth: 3,
+    needleCircleSize: 3,
+    colorNeedleCircleOuter: "#007F80",
+    needleCircleOuter: true,
+    needleCircleInner: false,
+    animation: false
+  }).draw();
   
-  // Get initial readings
-  getReadings();
-});
-
-// Function to initialize the gauge
-function initializeGauge() {
-  // Get container and adjust gauge size
-  var container = document.getElementById('gauge-card');
-  var size = Math.min(container.offsetWidth * 0.6, 250);
-
-  var opts = {
-    fontSize: 35,
-    angle: 0.15, // The span of the gauge arc
-    lineWidth: 0.4,
-    radiusScale: 0.65,
-    renderTicks: {
-      divisions: 5,
-      divWidth: 1.1,
-      divLength: 0.7,
-      divColor: '#333333',
-      subDivisions: 3,
-      subLength: 0.5,
-      subWidth: 0.6,
-      subColor: '#666666'
-    },
-    pointer: {
-      length: 0.6, // // Relative to gauge radius
-      strokeWidth: 0.035, // The thickness
-      color: '#000000' // Fill color
-    },
-    limitMax: false,     // If false, max value increases automatically if value > maxValue
-    limitMin: false,     // If true, the min value of the gauge will be fixed
-    colorStart: '#6FADCF',   // Colors
-    colorStop: '#8FC0DA',    // just experiment with them
-    strokeColor: '#E0E0E0',  // to see which ones work best for you
-    generateGradient: true,
-    highDpiSupport: true,     // High resolution support
-  };
-
-  // Set canvas size dynamically based on container with extra padding
-  var target = document.getElementById('gauge'); // your canvas element
-
-  // Make sure we have a square canvas with plenty of room for the gauge
-  var canvasSize = Math.max(size * 1.5, 250);  // Ensure minimum size of 250px
-  target.width = canvasSize;
-  target.height = canvasSize;
-
-  // Adjust gauge options based on canvas size
-  opts.width = canvasSize;
-  opts.height = canvasSize;
-
-  // Center the gauge within the canvas
-  opts.renderTo = target;
-  opts.centerX = canvasSize / 2;
-  opts.centerY = canvasSize / 2;
-
-  // Create and configure the gauge
-  window.gauge = new Gauge(target).setOptions(opts); // create gauge and make it globally accessible
-  gauge.maxValue = 100; // set max gauge value
-  gauge.setMinValue(0);  // Prefer setter over gauge.minValue = 0
-  gauge.animationSpeed = 32; // set animation speed (32 is default value)
-}
-
 // Function to get current readings on the webpage when it loads for the first time
 function getReadings(){
   var xhr = new XMLHttpRequest();
@@ -76,9 +52,9 @@ function getReadings(){
     if (this.readyState == 4 && this.status == 200) {
       var myObj = JSON.parse(this.responseText);
       console.log(myObj);
-      window.gauge.set(myObj.reading);
+      gaugeWater.value = myObj.waterlevel;
     }
-  };
+  }; 
   xhr.open("GET", "/readings", true);
   xhr.send();
 }
@@ -107,6 +83,7 @@ if (!!window.EventSource) {
     var timeDelta = myObj.time - lastTime;
     lastTime = myObj.time;
     console.log(timeDelta/1000);
-    window.gauge.set(myObj.reading);
+    gaugeWater.value = myObj.waterlevel;
+    document.getElementById('inches').innerHTML = myObj.distanceInch;
   }, false);
 }

@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ESP Coon Timer - Schedules</title>
+    <link rel="stylesheet" href="/schedule.css">
+    <link rel="icon" type="image/png" href="/favicon.png">
+    <script src="/schedule.js"></script>
+</head>
+<body>
+    <div class="content">
+        <!-- Title -->
+        <div style="text-align: center; margin: 40px 0 30px 0;">
+            <h1 style="color: #333; font-weight: 600; font-size: 2.5rem; margin: 0;">ESP Coon Timer</h1>
+        </div>
+
+        <!-- Relay Control -->
+        <div style="text-align: center; margin-bottom: 40px;">
+            <div style="color: #333; font-size: 1.2rem; margin-bottom: 15px; font-weight: 500;">Relay</div>
+            <label class="switch" style="transform: scale(2);">
+                <input type="checkbox" id="relayToggle" onchange="toggleRelay(this)">
+                <span class="slider"></span>
+            </label>
+        </div>
+
+        <!-- Schedules Section -->
+        <div style="text-align: center; margin: 50px 0 30px 0;">
+            <h2 style="color: #333; font-weight: 600; font-size: 2.2rem; margin: 0;">Schedules</h2>
+        </div>
+
+        <!-- Schedule List -->
+        <div id="scheduleList">
+            <!-- Schedules will be loaded here -->
+        </div>
+
+        <!-- Add Schedule Button -->
+        <button class="add-schedule-btn" onclick="addNewSchedule()">Add Schedule</button>
+    </div>
+
+    <!-- Edit Schedule Modal -->
+    <div id="scheduleModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 id="modalTitle">Add Schedule</h2>
+                <button class="close-btn" onclick="closeModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <!-- Time Picker -->
+                <div class="time-picker">
+                    <div class="time-display" id="timeDisplay">12:00</div>
+                    <div class="time-controls">
+                        <div class="time-input">
+                            <input type="number" id="hourInput" min="1" max="12" value="12" onchange="updateTimeDisplay()">
+                            <label>Hour</label>
+                        </div>
+                        <div class="time-input">
+                            <input type="number" id="minuteInput" min="0" max="59" value="0" onchange="updateTimeDisplay()">
+                            <label>Minute</label>
+                        </div>
+                    </div>
+                    <div class="am-pm-toggle">
+                        <button type="button" id="amBtn" class="active" onclick="setAmPm('AM')">AM</button>
+                        <button type="button" id="pmBtn" onclick="setAmPm('PM')">PM</button>
+                    </div>
+                </div>
+
+                <!-- Day Selector -->
+                <div class="day-selector">
+                    <h3>Repeat</h3>
+                    <div class="days-grid">
+                        <button type="button" class="day-btn" data-day="0" onclick="toggleDay(this)">S</button>
+                        <button type="button" class="day-btn" data-day="1" onclick="toggleDay(this)">M</button>
+                        <button type="button" class="day-btn" data-day="2" onclick="toggleDay(this)">T</button>
+                        <button type="button" class="day-btn" data-day="3" onclick="toggleDay(this)">W</button>
+                        <button type="button" class="day-btn" data-day="4" onclick="toggleDay(this)">T</button>
+                        <button type="button" class="day-btn" data-day="5" onclick="toggleDay(this)">F</button>
+                        <button type="button" class="day-btn" data-day="6" onclick="toggleDay(this)">S</button>
+                    </div>
+                </div>
+
+                <!-- Switch Controls -->
+                <div class="switch-controls">
+                    <h3 style="text-align: center; margin-bottom: 17px; color: #666; font-size: 0.85rem;">Action</h3>
+                    <div class="switch-control">
+                        <div>
+                            <span class="switch-label">Switch 1</span>
+                            <span class="switch-state" id="switch1State">OFF</span>
+                        </div>
+                        <label class="switch">
+                            <input type="checkbox" id="switch1" onchange="updateSwitchState(1, this.checked)">
+                            <span class="slider"></span>
+                        </label>
+                    </div>
+                    <div class="switch-control">
+                        <div>
+                            <span class="switch-label">Switch 2</span>
+                            <span class="switch-state" id="switch2State">OFF</span>
+                        </div>
+                        <label class="switch">
+                            <input type="checkbox" id="switch2" onchange="updateSwitchState(2, this.checked)">
+                            <span class="slider"></span>
+                        </label>
+                    </div>
+                    <div class="switch-control">
+                        <div>
+                            <span class="switch-label">Switch 3</span>
+                            <span class="switch-state" id="switch3State">OFF</span>
+                        </div>
+                        <label class="switch">
+                            <input type="checkbox" id="switch3" onchange="updateSwitchState(3, this.checked)">
+                            <span class="slider"></span>
+                        </label>
+                    </div>
+                    <div class="switch-control">
+                        <div>
+                            <span class="switch-label">Switch 4</span>
+                            <span class="switch-state" id="switch4State">OFF</span>
+                        </div>
+                        <label class="switch">
+                            <input type="checkbox" id="switch4" onchange="updateSwitchState(4, this.checked)">
+                            <span class="slider"></span>
+                        </label>
+                    </div>
+                </div>
+            </div>
+            <div class="action-buttons">
+                <button type="button" class="btn btn-secondary" onclick="closeModal()">Cancel</button>
+                <button type="button" class="btn btn-danger" id="deleteBtn" onclick="deleteSchedule()" style="display: none;">Delete</button>
+                <button type="button" class="btn btn-primary" onclick="saveSchedule()">Save</button>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

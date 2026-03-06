@@ -26,28 +26,28 @@ static int connectIdx = 0;
 static int connectCount = 0;
 #define MAX_RETRY (wifiCount*5)
 
-bool spiffsDebug = false;
+bool littlefsDebug = false;
 
-// check SPIFFS even if wifi is not enabled
-void checkSPIFFS() {
-  size_t totalBytes = SPIFFS.totalBytes();
-  size_t usedBytes = SPIFFS.usedBytes();
-  Serial.print("SPIFFS Total space: ");
+// check LittleFS even if wifi is not enabled
+void checkLittleFS() {
+  size_t totalBytes = LittleFS.totalBytes();
+  size_t usedBytes = LittleFS.usedBytes();
+  Serial.print("LittleFS Total space: ");
   Serial.print(totalBytes);
   Serial.println(" bytes");
-  Serial.print("SPIFFS Used space: ");
+  Serial.print("LittleFS Used space: ");
   Serial.print(usedBytes);
   Serial.println(" bytes");
-  Serial.print("SPIFFS Free space: ");
+  Serial.print("LittleFS Free space: ");
   Serial.print(totalBytes - usedBytes);
   Serial.println(" bytes");
   float usedPercentage = ((float)usedBytes / totalBytes) * 100;
-  Serial.print("SPIFFS Usage: ");
+  Serial.print("LittleFS Usage: ");
   Serial.print(usedPercentage);
   Serial.println("%");
-  File root = SPIFFS.open("/");
+  File root = LittleFS.open("/");
   File file = root.openNextFile();
-  Serial.println("Files on SPIFFS:");
+  Serial.println("Files on LittleFS:");
   while (file) {
     Serial.print("  ");
     Serial.print(file.name());
@@ -60,7 +60,7 @@ void checkSPIFFS() {
 
 // Read WiFi credentials from wifi.txt file
 bool readWiFiCredentials() {
-  File file = SPIFFS.open(wifiPath, "r");
+  File file = LittleFS.open(wifiPath, "r");
   //if(!file || file.isDirectory()) {
   //  log::toAll("Failed to open wifi.txt for reading, open returned " + String(File));
   //  return false;
@@ -68,20 +68,20 @@ bool readWiFiCredentials() {
       Serial.println("Failed to open file");
       
       // Check if file exists
-      if (!SPIFFS.exists(wifiPath)) {
+      if (!LittleFS.exists(wifiPath)) {
           Serial.println("Error: File does not exist");
       }
       // Check if it's a directory
       else if (file.isDirectory()) {
           Serial.println("Error: Path is a directory, not a file");
       }
-      // Check SPIFFS status
-      else if (!SPIFFS.begin()) {
-          Serial.println("Error: SPIFFS not mounted");
+      // Check LittleFS status
+      else if (!LittleFS.begin()) {
+          Serial.println("Error: LittleFS not mounted");
       }
       // Check available space
-      else if (SPIFFS.totalBytes() == 0) {
-          Serial.println("Error: SPIFFS has no space");
+      else if (LittleFS.totalBytes() == 0) {
+          Serial.println("Error: LittleFS has no space");
       }
       else {
           Serial.println("Error: Unknown file open error (corruption/permissions?)");
@@ -223,7 +223,7 @@ void startPortal() {
 
   // Web Server Root URL: serve wifimanager.html from captive portal
   server.on("/", HTTP_GET, [](AsyncWebServerRequest *request){
-      request->send(SPIFFS, "/wifimanager.html", "text/html");
+      request->send(LittleFS, "/wifimanager.html", "text/html");
   });
 
   server.on("/", HTTP_POST, [](AsyncWebServerRequest *request) {
@@ -235,7 +235,7 @@ void startPortal() {
           if (p->name() == PARAM_HOSTNAME && p->value().length() > 0) {
             // hostname is special; goes into preferences instead of file
             host = p->value().c_str();
-            preferences.putString("hostname", host);
+            coonPrefs.putString("hostname", host);
             log::toAll("host set to: " + host);
           }
           if (p->name() == PARAM_SSID) {
@@ -261,8 +261,8 @@ void startPortal() {
         // Save the WiFi credentials to the file
         // Read existing lines first
         String existingLines = "";
-        if(SPIFFS.exists(wifiPath)) {
-          File readFile = SPIFFS.open(wifiPath, FILE_READ);
+        if(LittleFS.exists(wifiPath)) {
+          File readFile = LittleFS.open(wifiPath, FILE_READ);
           if(readFile) {
             while(readFile.available()) {
               existingLines += readFile.readStringUntil('\n') + "\n";
@@ -272,7 +272,7 @@ void startPortal() {
         }
         
         // Write new credentials first, then append old ones
-        File file = SPIFFS.open(wifiPath, FILE_WRITE);
+        File file = LittleFS.open(wifiPath, FILE_WRITE);
         if(!file) {
           log::toAll("Failed to open wifi.txt for writing");
         } else {
@@ -324,45 +324,29 @@ void onWiFiConnected() {
   }
 #endif
 
-  // Initialize mDNS
-  String mdnsHost = host;
-  mdnsHost.toLowerCase();
-  mdnsHost.replace("_", "-");
-  mdnsHost.replace(" ", "-");
-  String sanitized = "";
-  for (int i = 0; i < mdnsHost.length() && i < 63; i++) {
-    char c = mdnsHost.charAt(i);
-    if ((c >= 'a' && c <= 'z') || (c >= '0' && c <= '9') || c == '-') {
-      sanitized += c;
-    }
-  }
-  #if 0
-  if (sanitized.length() > 0) {
-    log::toAll("Starting MDNS with hostname: " + sanitized);
-    if (!MDNS.begin(sanitized.c_str())) {
-      log::toAll(F("Error starting MDNS responder"));
+  log::toAll("Starting MDNS with hostname: " + host);
+  if (!MDNS.begin(host.c_str())) {
+    log::toAll(F("Error starting MDNS responder"));
+  } else {
+    log::toAll("MDNS started successfully as " + host + ".local");
+    if (!MDNS.addService("http", "tcp", HTTP_PORT)) {
+      log::toAll("MDNS add service failed");
     } else {
-      log::toAll("MDNS started successfully as " + sanitized + ".local");
-      if (!MDNS.addService("http", "tcp", HTTP_PORT)) {
-        log::toAll("MDNS add service failed");
-      } else {
-        log::toAll("MDNS service added successfully");
-      }
-      
-      // Query for other mDNS services
-      int n = MDNS.queryService("http", "tcp");
-      if (n == 0) {
-        log::toAll("No other mDNS services found");
-      } else {
-        log::toAll("Found " + String(n) + " mDNS services:");
-        for (int i = 0; i < n; i++) {
-          log::toAll("  - " + MDNS.hostname(i) + ".local");
-        }
+      log::toAll("MDNS service added successfully");
+    }
+    
+    // Query for other mDNS services
+    int n = MDNS.queryService("http", "tcp");
+    if (n == 0) {
+      log::toAll("No other mDNS services found");
+    } else {
+      log::toAll("Found " + String(n) + " mDNS services:");
+      for (int i = 0; i < n; i++) {
+        log::toAll("  - " + MDNS.hostname(i) + ".local");
       }
     }
   }
-  #endif
-  
+
   // Initialize ArduinoOTA
   ArduinoOTA.setHostname(host.c_str());
   ArduinoOTA.onStart([]() {
@@ -542,8 +526,8 @@ bool setupWifi() {
 void resetWifi() {
   log::toAll("Resetting WiFi settings...");
   WiFi.disconnect(true);
-  if (SPIFFS.exists(wifiPath))
-    if (SPIFFS.remove(wifiPath))
+  if (LittleFS.exists(wifiPath))
+    if (LittleFS.remove(wifiPath))
       log::toAll("removed wifi params");
   delay(3000);
   ESP.restart();

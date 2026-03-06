@@ -13,13 +13,90 @@ const char* PARAM_INPUT_2 = "state";
 void startWebServer() {
   log::toAll("starting web server");
 
-  server.on("/", HTTP_GET, [](AsyncWebServerRequest * request) {
-    log::toAll("index.html");
-    request->send(SPIFFS, "/index.html", "text/html", processor);
+  server.on("/rain", HTTP_GET, [](AsyncWebServerRequest * request) {
+      log::toAll("raintank.html");
+      request->send(LittleFS, "/raintank.html", "text/html", false, [](const String& var) -> String { return rain_processor(var); });
+  });
+
+  server.on("/coon", HTTP_GET, [](AsyncWebServerRequest * request) {
+      log::toAll("coon.html");
+      request->send(LittleFS, "/coon.html", "text/html", false, [](const String& var) -> String { return coon_processor(var); });
+  });
+
+  server.on("/schedule", HTTP_GET, [](AsyncWebServerRequest * request) {
+      log::toAll("schedule.html");
+      request->send(LittleFS, "/schedule.html", "text/html");
+  });
+
+  // Get all schedules
+  server.on("/api/schedules", HTTP_GET, [](AsyncWebServerRequest *request) {
+    File file = LittleFS.open("/schedule.json", "r");
+    if (!file) {
+      request->send(500, "application/json", "{\"error\":\"Failed to open schedule file\"}");
+      return;
+    }
+    
+    String scheduleJson = file.readString();
+    file.close();
+    
+    AsyncWebServerResponse *response = request->beginResponse(200, "application/json", scheduleJson);
+    response->addHeader("Access-Control-Allow-Origin", "*");
+    response->addHeader("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE");
+    response->addHeader("Access-Control-Allow-Headers", "Content-Type");
+    request->send(response);
+  });
+
+  // Save schedules
+  server.on("/api/schedules", HTTP_POST, [](AsyncWebServerRequest *request){},
+    NULL,
+    [](AsyncWebServerRequest *request, uint8_t *data, size_t len, size_t index, size_t total) {
+      if (index + len == total) {
+        // Parse the JSON data
+        JsonDocument doc;
+        DeserializationError error = deserializeJson(doc, data, len);
+        
+        if (error) {
+          request->send(400, "application/json", "{\"error\":\"Invalid JSON\"}");
+          return;
+        }
+        
+        // Save to LittleFS
+        File file = LittleFS.open("/schedule.json", "w");
+        if (!file) {
+          request->send(500, "application/json", "{\"error\":\"Failed to save schedule\"}");
+          return;
+        }
+        
+        serializeJson(doc, file);
+        file.close();
+        
+        // Update the global schedule data
+        scheduleData.clear();
+        scheduleData = doc;
+        
+        log::toAll("Schedules updated");
+        
+        AsyncWebServerResponse *response = request->beginResponse(200, "application/json", "{\"success\":true}");
+        response->addHeader("Access-Control-Allow-Origin", "*");
+        response->addHeader("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE");
+        response->addHeader("Access-Control-Allow-Headers", "Content-Type");
+        request->send(response);
+      }
+    }
+  );
+
+  // Handle OPTIONS preflight for schedule API
+  server.on("/api/schedules", HTTP_OPTIONS, [](AsyncWebServerRequest *request) {
+    AsyncWebServerResponse *response = request->beginResponse(204);
+    response->addHeader("Access-Control-Allow-Origin", "*");
+    response->addHeader("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS");
+    response->addHeader("Access-Control-Allow-Headers", "Content-Type");
+    response->addHeader("Access-Control-Max-Age", "3600");
+    request->send(response);
   });
 
   // Serve static files with proper MIME types
-  server.serveStatic("/", SPIFFS, "/");
+  server.serveStatic("/", LittleFS, "/");
 
   // Request latest sensor readings
   server.on("/readings", HTTP_GET, [](AsyncWebServerRequest *request) {
@@ -95,16 +172,34 @@ void startWebServer() {
         struct timeval now = { .tv_sec = t, .tv_usec = 0 };
         settimeofday(&now, NULL);      // Set the ESP32 system clock
         request->send(200, "text/plain", "Time received and set");
-      } else
-#else
-        {
-        // If NTP sync was successful, acknowledge but don't use the client time
-        log::toAll("Received client time.");
-        request->send(200, "text/plain", "Time received.");
+      } else {
+        // NTP sync was successful, just acknowledge
+        log::toAll("NTP sync successful, ignoring client time");
+        request->send(200, "text/plain", "Time received but not used (NTP active)");
       }
-#endif      
-      // Clean up
-      String clientTime = String();
+#else
+      // No NTP support - always use client time
+      log::toAll("Using client time (no NTP support)");
+      JsonDocument doc;
+      ::deserializeJson(doc, data);
+      String clientTime = doc["datetime"];
+      Serial.print("Received client time: ");
+      Serial.println(clientTime);
+      
+      int year, month, day, hour, minute, second;
+      sscanf(clientTime.c_str(), "%4d-%2d-%2dT%2d:%2d:%2d", &year, &month, &day, &hour, &minute, &second);
+      struct tm timeinfo;
+      timeinfo.tm_year = year - 1900;
+      timeinfo.tm_mon  = month - 1;
+      timeinfo.tm_mday = day;
+      timeinfo.tm_hour = hour;
+      timeinfo.tm_min  = minute;
+      timeinfo.tm_sec  = second;
+      time_t t = mktime(&timeinfo);
+      struct timeval now = { .tv_sec = t, .tv_usec = 0 };
+      settimeofday(&now, NULL);
+      request->send(200, "text/plain", "Time received and set");
+#endif
     }
   );
 

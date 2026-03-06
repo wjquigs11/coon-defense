@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Tank Level</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="icon" type="image/png" href="favicon.png">
+    <link rel="stylesheet" type="text/css" href="style.css">
+    <script src="gauge.min.js"></script>
+    </head>
+  <body>
+    <div class="content">
+      <div class="card-grid">
+        <div class="card" id="gauge-card">
+          <canvas id="gauge"></canvas>
+          <p class="content"><span id="inches"></span></p>
+        </div>
+      </div>
+    </br>
+      <p>Full distance: <strong> %TANKTOP%</strong></p>
+      <p>Bottom distance: <strong> %TANKBOTTOM%</strong></p>
+      <p>Capacity (gal): <strong> %CAPACITY%</strong></p>
+      <form action="/config" method="post">
+        <p>Tank top:<input type="text" name="tanktop" value=%TANKTOP% size="8"></p>
+        <p>Tank bottom:<input type="text" name="tankbottom" value=%TANKBOTTOM% size="8"></p>
+        <p>Tank capacity:<input type="text" name="capacity" value=%CAPACITY% size="8"></p>
+        <button type="submit">Submit</button>
+      </form>
+      <p>
+        <a href="/"><button>Cancel</button></a>
+        <a href="/wifi.html"><button>WiFi Setup</button></a>
+      </p>
+    </div>
+    <script src="/script.js"></script>
+  </body>
+</html>

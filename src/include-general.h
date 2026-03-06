@@ -1,5 +1,5 @@
 #include <Arduino.h>
-#include <SPIFFS.h>
+#include <LittleFS.h>
 #include <Preferences.h>
 #include <time.h>
 
@@ -28,7 +28,7 @@ extern JsonDocument readings;
 extern int timerDelay;
 #define HTTP_PORT 80
 #define DRD_TIMEOUT 10
-void checkSPIFFS();
+void checkLittleFS();
 bool readWiFiCredentials();
 extern bool gotWifiCreds;
 // for captive portal
@@ -42,7 +42,15 @@ void startPortal();
 void onWiFiConnected();
 void onWiFiDisconnected();
 String getSensorReadings();
-String processor();
+String coon_processor(const String& var);
+String rain_processor(const String& var);
+
+// Schedule management
+#define MAX_SCHEDULES 8
+extern JsonDocument scheduleData;
+void checkScheduleEvents();
+void triggerScheduleEvent(int scheduleIndex, JsonObject schedule);
+bool loadSchedules();
 #endif
 
 #ifdef WEBSERIAL
@@ -61,7 +69,8 @@ extern Handler togHandler;
 
 #include "logto.h"
 
-extern Preferences preferences;
+extern Preferences coonPrefs;
+extern Preferences waterPrefs;
 extern File consLog;
 
 // Timer variables
@@ -101,7 +110,24 @@ extern unsigned long startTime; /* Time when the device started */
 void print_wakeup_reason();
 #endif
 
+extern unsigned long now;
+
 #define NUM_RELAYS 1
-#define relayGPIO 19
+#define relayGPIO 16
 #define RELAY_NO    true
 extern bool relayState;
+
+#include <Adafruit_INA219.h>
+#include <movingAvg.h>
+extern Adafruit_INA219 ina219;
+extern movingAvg shuntAvg;
+
+void setupWater();
+void loopWater();
+extern int minReadRate;
+
+float getWaterLevel();
+extern float tanktop, tankbottom, capacity;
+extern float distanceInch;
+
+

@@ -119,6 +119,23 @@ void startWebServer() {
     request->send(response);
   });
 
+  // Route the root URL based on which DNS name the client used to reach us.
+  // Both names resolve to the same IP, but the browser sends the requested
+  // name in the Host header, which request->host() exposes.
+  server.on("/", HTTP_GET, [](AsyncWebServerRequest *request) {
+    String reqHost = request->host();
+    reqHost.toLowerCase();
+    log::toAll("root request via host: " + reqHost);
+    if (reqHost.indexOf("raintank") >= 0) {
+      request->redirect("/rain");
+    } else if (reqHost.indexOf("coon") >= 0) {
+      request->redirect("/coon");
+    } else {
+      // Fall back to serving index.html for any other name (or raw IP)
+      request->send(LittleFS, "/index.html", "text/html");
+    }
+  });
+
   // Serve static files with proper MIME types
   server.serveStatic("/", LittleFS, "/");
 

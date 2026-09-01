@@ -5,8 +5,9 @@
 bool relayState;
 bool trigger = false;
 
-File consLog;
 Preferences coonPrefs;
+bool OTAinProgress = false;
+unsigned long ota_progress_millis = 0;
 
 #ifdef WIFI
 bool wifiEnabled = true;
@@ -21,11 +22,31 @@ int timerDelay = 1000; // this sets loop time after housekeeping tasks are done
 int loopDelay = 10;
 time_t lastUpdate, updateTime;
 unsigned long lastTime = 0;
+unsigned long now;
 struct tm *ptm;
 char prbuf[PRBUF]; // PRBUF needs to be defined in include.h
 
 Adafruit_INA219 ina219;
 movingAvg shuntAvg(10);
+
+// ─── OTA callbacks ──────────────────────────────────────────────────────────────
+void onOTAStart() {
+  Serial.println("OTA update started!");
+  OTAinProgress = true;
+}
+
+void onOTAProgress(size_t current, size_t final) {
+  if (now - ota_progress_millis > 1000) {
+    ota_progress_millis = now;
+    Serial.printf("OTA Progress Current: %u bytes, Final: %u bytes\n", current, final);
+  }
+}
+
+void onOTAEnd(bool success) {
+  OTAinProgress = false;
+  if (success) Serial.println("OTA update finished successfully!");
+  else Serial.println("There was an error during OTA update!");
+}
 
 #ifdef DEEPSLEEP
 // Deep sleep variables
@@ -55,36 +76,39 @@ unsigned long startTime; // Time when the device started
 void setup() {
   Serial.begin(115200); delay(300);
   startTime = millis();
-  Serial.println(SDA);
-  Serial.println(SCL);
-  ina219.begin();  
+
+  // Setup custom panic handler
+  setup_custom_panic_handler();
+
+  ina219.begin();
   shuntAvg.begin();
 
-  // Enable WiFi debugging
-  //Serial.println("Enabling WiFi debugging...");
-  //esp_log_level_set("wifi", ESP_LOG_VERBOSE);
-#ifdef WIFI
-  if (LittleFS.begin()) {
+  // Mount filesystem (needed for console log and WiFi credentials)
+  if (LittleFS.begin(false, "/littlefs", 10, "littlefs")) {
     Serial.println("opened LittleFS");
-    checkLittleFS();
-    gotWifiCreds = readWiFiCredentials();
   } else {
-    Serial.println("failed to open LittleFS");
+    Serial.println("failed to open LittleFS - trying format");
+    if (LittleFS.begin(true, "/littlefs", 10, "littlefs")) {
+      Serial.println("LittleFS formatted and mounted");
+    } else {
+      Serial.println("LittleFS mount failed even after format");
+    }
   }
 
-  consLog = LittleFS.open("/console.log", "a", true);
-  if (!consLog) {
-    log::toAll("failed to open console log");
-  }
-  if (consLog.println("ESP console log.")) {
-    log::toAll("console log written");
-  } else {
-    log::toAll("console log write failed");
-  }
+#ifdef WIFI
+  checkLittleFS();
+  gotWifiCreds = readWiFiCredentials();
 #endif
+  if (!log::initConsole()) {
+    log::toAll("failed to open console log");
+  } else {
+    log::toAll("console log open");
+  }
+
   // Increment boot number and print it every reboot
   ++bootCount;
-  log::toAll("Boot number: " + String(bootCount));
+  snprintf(logbuf, LOGBUF_SIZE, "Boot number: %d", bootCount);
+  log::toAll(logbuf);
 
 #ifdef DEEPSLEEP
   // Print the wakeup reason for ESP32
@@ -128,31 +152,33 @@ void setup() {
     // In fallback mode, it will serve from AP mode
     startWebServer();
     serverStarted = true;
-    
-#ifdef ELEGANTOTA
-    ElegantOTA.begin(&server);
-#endif
+
 #ifdef WEBSERIAL
     WebSerial.begin(&server);
     // Attach a callback function to handle incoming messages
     WebSerial.onMessage(WebSerialonMessage);
 #endif
-    
+#ifdef ELEGANTOTA
+    ElegantOTA.begin(&server);
+    ElegantOTA.onStart(onOTAStart);
+    ElegantOTA.onProgress(onOTAProgress);
+    ElegantOTA.onEnd(onOTAEnd);
+#endif
+
     log::toAll("HTTP server started");
-    
+
     // Load schedules from LittleFS
     loadSchedules();
-    
+
     // mDNS will be initialized by WiFi event handler when connected
   }
 #endif // WIFI
-  consLog.flush();
+  log::flush();
   pinMode(relayGPIO,OUTPUT);
   if (RELAY_NO) digitalWrite(relayGPIO,LOW);
 }
 
 static int loopcount = 0;
-unsigned long now;
 
 void loop() {
 #ifdef ELEGANTOTA
@@ -163,16 +189,20 @@ void loop() {
 #endif
   now = millis();
   static unsigned long lastEventTime, lastTimeTime, startTime;
-  // loop ultrasonic water
+  // loop ultrasonic water (non-blocking sampling)
   loopWater();
+#ifdef WEBSERIAL
+  // Dispatch a line typed on the serial console through the same
+  // command handler used by the WebSerial interface.
+  pollSerialConsole();
+#endif
 #ifdef WIFI
-  ArduinoOTA.handle();
   if (WiFi.getMode() == WIFI_AP || WiFi.getMode() == WIFI_AP_STA)
     dnsServer.processNextRequest(); // for captive portal
-  // update web page
+  // Periodic WiFi health check / reconnect (async wifi manages captive-portal fallback)
+  wifiCheck();
   static bool drdCleared = false;
-  static bool wifiTimeoutChecked = false;
-  
+
   // Clear DRD flag after DRD_TIMEOUT seconds for double reset detection
   // unless reset occurs within the timeout period
   if (!drdCleared && (now > (DRD_TIMEOUT * 1000))) {
@@ -180,42 +210,13 @@ void loop() {
     drdCleared = true;
     log::toAll("DRD timeout - cleared double reset flag");
   }
-  
-  // Check for WiFi connection timeout (20 seconds - increased for better reliability)
-  if (wifiEnabled && !wifiConnected && !wifiTimeoutChecked && (now - wifiStartTime > 20000)) {
-    wifiTimeoutChecked = true;
-    wl_status_t status = WiFi.status();
-    log::toAll("WiFi timeout check - Status: " + String(status) +
-      " (" + (status == WL_CONNECTED ? "CONNECTED" :
-              status == WL_NO_SSID_AVAIL ? "NO_SSID_AVAIL" :
-              status == WL_CONNECT_FAILED ? "CONNECT_FAILED" :
-              status == WL_CONNECTION_LOST ? "CONNECTION_LOST" :
-              status == WL_DISCONNECTED ? "DISCONNECTED" :
-              status == WL_IDLE_STATUS ? "IDLE" : "UNKNOWN") + ")");
-    
-    if (status != WL_CONNECTED) {
-      log::toAll("WiFi connection timeout after 20 seconds - stopping STA mode");
-      // Stop the connection timer if it's still running
-      extern TimerHandle_t connectTimer;
-      if (connectTimer != NULL) {
-        xTimerDelete(connectTimer, 0);
-        connectTimer = NULL;
-      }
-      // Stop STA mode before starting AP
-      WiFi.disconnect(true);
-      WiFi.mode(WIFI_OFF);
-      delay(100);
-      log::toAll("Starting captive portal due to timeout");
-      startPortal();
-    }
-  }
-  
+
   // Check schedule events
   checkScheduleEvents();
 #endif
-  if (now - lastEventTime > timerDelay || lastEventTime == 0) {
+  if (!OTAinProgress && (now - lastEventTime > timerDelay || lastEventTime == 0)) {
     lastEventTime = now;
-#if defined(WIFI) && defined(NTP00)
+#if defined(WIFI) && defined(NTP)
     // Get current time from NTP-synchronized system clock if available
     if (isNtpSyncSuccessful()) {
       // Use the NTP-synchronized time
@@ -236,10 +237,6 @@ void loop() {
       resyncNTP();
       lastNTPSync = now;
     }
-    
-    // Send the timestamp in milliseconds since epoch (Unix timestamp)
-    readings["lastUpdate"] = String(lastUpdate);
-    events.send(getSensorReadings().c_str(),"new_readings" ,millis());
 #endif
 #if 0
     // Use system time directly instead of lastUpdate
@@ -303,6 +300,13 @@ void loop() {
     //Serial.print(">Load Voltage:  "); Serial.print(loadvoltage); Serial.println(" V");
     //Serial.print(">Current:       "); Serial.print(current_mA); Serial.println(" mA");
     //Serial.println("");
+#if defined(WIFI)
+    // Push latest readings to any connected web clients
+    readings["lastUpdate"] = String(lastUpdate);
+    events.send(getSensorReadings().c_str(), "new_readings", now);
+#endif
+    // Flush queued log lines to LittleFS
+    log::flush();
   } // end of timerDelay
 /*
   if (Serial.available() > 0) {
@@ -329,16 +333,16 @@ void loop() {
     // Check if it's time to go to sleep
     if ((millis() - startTime) > (awakeTimer * 1000)) {
       log::toAll("Going to sleep in 5 seconds...");
-      
+
       // Flush any pending data
-      consLog.flush();
+      log::flush();
   #ifdef WEBSERIAL
       WebSerial.flush();
   #endif
-      
+
       // Give time for final communications
       delay(5000);
-      
+
       // Enter deep sleep
       log::toAll("Entering deep sleep for " + String(TIME_TO_SLEEP) + " seconds");
       esp_deep_sleep_start();

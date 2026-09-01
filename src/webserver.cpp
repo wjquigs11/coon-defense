@@ -44,14 +44,15 @@ String getRelayState() {
 String getSensorReadings() {
   // Clear previous readings to prevent nesting
   readings.clear();
-  
-  int waterlevel = getWaterLevel();
+
+  // Use the cached water level (refreshed by the non-blocking loopWater sampler)
+  // so this can be called from the web/event path without triggering a blocking read.
+  int waterlevel = getCachedWaterLevel();
   readings["waterlevel"] = String(waterlevel);
   readings["distanceInch"] = String(distanceInch);
   readings["time"] = String(millis());
   String jsonString;
-  serializeJson(readings,jsonString);
-  log::toAll(jsonString);
+  serializeJson(readings, jsonString);
   return jsonString;
 }
 

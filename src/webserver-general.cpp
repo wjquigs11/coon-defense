@@ -18,6 +18,30 @@ void startWebServer() {
       request->send(LittleFS, "/raintank.html", "text/html", false, [](const String& var) -> String { return rain_processor(var); });
   });
 
+  // Update tank calibration (posted from raintank.html): tanktop, tankbottom, capacity
+  server.on("/config", HTTP_POST, [](AsyncWebServerRequest *request) {
+    int params = request->params();
+    for (int i = 0; i < params; i++) {
+      const AsyncWebParameter* p = request->getParam(i);
+      if (p->isPost()) {
+        if (p->name() == "tanktop") {
+          tanktop = atof(p->value().c_str());
+          waterPrefs.putFloat("tanktop", tanktop);
+        } else if (p->name() == "tankbottom") {
+          tankbottom = atof(p->value().c_str());
+          waterPrefs.putFloat("tankbottom", tankbottom);
+        } else if (p->name() == "capacity") {
+          capacity = atof(p->value().c_str());
+          waterPrefs.putFloat("capacity", capacity);
+        }
+      }
+    }
+    snprintf(logbuf, LOGBUF_SIZE, "config: top=%.2f bottom=%.2f cap=%.2f", tanktop, tankbottom, capacity);
+    log::toAll(logbuf);
+    // Return the refreshed tank page with the new values filled in
+    request->send(LittleFS, "/raintank.html", "text/html", false, [](const String& var) -> String { return rain_processor(var); });
+  });
+
   server.on("/coon", HTTP_GET, [](AsyncWebServerRequest * request) {
       log::toAll("coon.html");
       request->send(LittleFS, "/coon.html", "text/html", false, [](const String& var) -> String { return coon_processor(var); });
@@ -114,6 +138,60 @@ void startWebServer() {
     log::toAll(buf);
     request->send(200, "text/plain", buf.c_str());
     buf = String();
+  });
+
+  // WiFi management routes (also registered in captive portal)
+  server.on("/wifimanager", HTTP_GET, [](AsyncWebServerRequest *request) {
+    request->send(LittleFS, "/wifimanager.html", "text/html");
+  });
+
+  server.on("/wifimanager", HTTP_POST, [](AsyncWebServerRequest *request) {
+    String ssid, password;
+    int params = request->params();
+    for (int i = 0; i < params; i++) {
+      const AsyncWebParameter* p = request->getParam(i);
+      if (p->isPost()) {
+        if (p->name() == "ssid") ssid = p->value();
+        else if (p->name() == "pass") password = p->value();
+        else if (p->name() == "hostname" && p->value().length() > 0) {
+          host = p->value();
+          coonPrefs.putString("hostname", host);
+        }
+      }
+    }
+    if (ssid.length() > 0 && password.length() > 0) {
+      saveNewWifiCredentials(ssid.c_str(), password.c_str());
+      request->send(200, "text/plain", "WiFi credentials saved. Restart to connect to new network.");
+    } else {
+      request->send(400, "text/plain", "Must supply ssid and password");
+    }
+  });
+
+  server.on("/wifilist", HTTP_GET, [](AsyncWebServerRequest *request) {
+    String json = "[";
+    for (int i = 0; i < wifiCount; i++) {
+      if (i > 0) json += ",";
+      json += "\"";
+      json += wifi[i].ssid;
+      json += "\"";
+    }
+    json += "]";
+    request->send(200, "application/json", json);
+  });
+
+  server.on("/wifidelete", HTTP_POST, [](AsyncWebServerRequest *request) {
+    int params = request->params();
+    int deleted = 0;
+    for (int i = 0; i < params; i++) {
+      const AsyncWebParameter* p = request->getParam(i);
+      if (p->isPost() && p->name() == "ssid") {
+        deleteWifiCredentials(p->value().c_str());
+        deleted++;
+      }
+    }
+    snprintf(logbuf, LOGBUF_SIZE, "Deleted %d SSID(s) via web", deleted);
+    log::toAll(logbuf);
+    request->send(200, "text/plain", "OK");
   });
 
 #ifdef TEMPLATE

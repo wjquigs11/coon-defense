@@ -15,10 +15,8 @@
 #include <ESPmDNS.h>
 #include <AsyncTCP.h>
 #include <ESPAsyncWebServer.h>
-#include <ArduinoOTA.h>
 extern AsyncWebServer server;
 extern AsyncEventSource events;
-extern AsyncWebSocket ws;
 extern bool serverStarted;
 extern bool wifiConnected;
 extern String host;
@@ -37,6 +35,21 @@ extern DNSServer dnsServer;
 #define DNS_INTERVAL 300
 bool setupWifi();
 void resetWifi();
+void saveNewWifiCredentials(const char* ssid, const char* password);
+void deleteWifiCredentials(const char* ssid);
+void wifiCheck();
+extern String newWifiSsid;
+extern String newWifiPass;
+// WiFi credentials
+struct WiFiCredentials {
+  String ssid;
+  String password;
+  String ip;
+  String gateway;
+};
+#define MAX_WIFI_NETWORKS 5
+extern WiFiCredentials wifi[];
+extern int wifiCount;
 void startWebServer();
 void startPortal();
 void onWiFiConnected();
@@ -56,9 +69,10 @@ bool loadSchedules();
 #ifdef WEBSERIAL
 #include <WebSerialPro.h>
 void WebSerialonMessage(uint8_t *data, size_t len);
+void pollSerialConsole();
 extern String appCommandList[];
 extern String appToggleList[];
-using Handler = void(*)(String);
+using Handler = void(*)(String*, int);
 extern Handler appHandler;
 extern Handler togHandler;
 #endif
@@ -122,8 +136,13 @@ extern bool relayState;
 extern Adafruit_INA219 ina219;
 extern movingAvg shuntAvg;
 
+// Custom panic handler setup
+void setup_custom_panic_handler();
+
 void setupWater();
 void loopWater();
+void updateWaterReading();
+int getCachedWaterLevel();
 extern int minReadRate;
 
 float getWaterLevel();

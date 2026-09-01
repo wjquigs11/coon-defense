@@ -106,7 +106,23 @@ bool readWiFiCredentials() {
     log::toAll(logbuf);
   }
 
-  JsonArray arr = doc.as<JsonArray>();
+  // Accept either shape:
+  //   array of networks:  [ {"ssid":...}, ... ]   (current/expected format)
+  //   single object:      {"ssid":..., "password":...}   (legacy format)
+  // Normalize a single object into a one-element array so the loop below works.
+  JsonDocument arrDoc;
+  JsonArray arr = arrDoc.to<JsonArray>();
+  if (doc.is<JsonArray>()) {
+    for (JsonVariant v : doc.as<JsonArray>()) {
+      arr.add(v);
+    }
+  } else if (doc.is<JsonObject>()) {
+    if (littleFSDebug) {
+      log::toAll("wifi.json is a single object; treating as one network");
+    }
+    arr.add(doc.as<JsonObject>());
+  }
+
   wifiCount = 0;
 
   for (JsonObject obj : arr) {

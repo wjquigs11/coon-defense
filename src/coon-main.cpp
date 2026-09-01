@@ -148,9 +148,17 @@ void setup() {
       setupWifi(); // Async - will connect in background via event handlers
     }
     
-    // Start the web server regardless of WiFi connection status
-    // In fallback mode, it will serve from AP mode
-    startWebServer();
+    // Only start the normal web server when we are NOT in captive-portal mode.
+    // startPortal() (called from setupWifi when gotWifiCreds is false) registers
+    // its own "/" route serving wifimanager.html. Registering startWebServer()
+    // as well would double-register "/" and the first-registered handler wins,
+    // which would shadow the host-based redirect. gotWifiCreds tells us which
+    // path setupWifi() took.
+    if (gotWifiCreds) {
+      startWebServer();
+    } else {
+      log::toAll("captive portal active; skipping normal web server routes");
+    }
     serverStarted = true;
 
 #ifdef WEBSERIAL

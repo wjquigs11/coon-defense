@@ -23,7 +23,7 @@ static int connectCount = 0;
 // Flag for wifiConnectTask to poll
 static volatile bool wifiConnectPending = false;
 
-bool littleFSDebug = false;
+bool littleFSDebug = true;   // TEMP: enabled to diagnose wifi.json first-read issue
 
 // check LittleFS even if wifi is not enabled
 void checkLittleFS() {
@@ -79,15 +79,31 @@ bool readWiFiCredentials() {
       return false;
   }
 
-  // Parse JSON array from file
-  JsonDocument doc;
-  DeserializationError error = deserializeJson(doc, file);
+  // Read the whole file into a String first so we can dump the raw bytes for
+  // diagnostics, then parse from that String (equivalent to parsing the file).
+  String rawJson = file.readString();
   file.close();
+
+  if (littleFSDebug) {
+    snprintf(logbuf, LOGBUF_SIZE, "wifi.json raw (%d bytes): %s",
+      (int)rawJson.length(), rawJson.c_str());
+    log::toAll(logbuf);
+  }
+
+  // Parse JSON array from the raw contents
+  JsonDocument doc;
+  DeserializationError error = deserializeJson(doc, rawJson);
 
   if (error) {
     snprintf(logbuf, LOGBUF_SIZE, "Failed to parse wifi.json: %s", error.c_str());
     log::toAll(logbuf);
     return false;
+  }
+
+  if (littleFSDebug) {
+    snprintf(logbuf, LOGBUF_SIZE, "wifi.json parsed: isArray=%d, size=%d",
+      (int)doc.is<JsonArray>(), (int)doc.as<JsonArray>().size());
+    log::toAll(logbuf);
   }
 
   JsonArray arr = doc.as<JsonArray>();
@@ -96,7 +112,12 @@ bool readWiFiCredentials() {
   for (JsonObject obj : arr) {
     if (wifiCount >= MAX_WIFI_NETWORKS) break;
 
-    if (!obj["ssid"].is<const char*>()) continue;
+    if (!obj["ssid"].is<const char*>()) {
+      if (littleFSDebug) {
+        log::toAll("skipping entry: ssid missing or not a string (is<const char*> false)");
+      }
+      continue;
+    }
 
     wifi[wifiCount].ssid = obj["ssid"].as<String>();
     wifi[wifiCount].password = obj["password"] | "";

@@ -1,6 +1,6 @@
 .pio
 .vscode
 .git
-data/wifi.txt
+data/wifi.*
 src.small
 mock-server

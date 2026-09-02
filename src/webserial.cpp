@@ -175,6 +175,7 @@ static void handleCommand(String dataS) {
     log::toAll(logbuf);
     snprintf(logbuf, LOGBUF_SIZE, "relay: %s", relayState ? "on" : "off");
     log::toAll(logbuf);
+    logIna219Diagnostics("status");
     log::toAll(getSensorReadings().c_str());
     return;
   }

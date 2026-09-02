@@ -80,8 +80,31 @@ void setup() {
   // Setup custom panic handler
   setup_custom_panic_handler();
 
-  ina219.begin();
+  bool ina219Found = ina219.begin();
   shuntAvg.begin();
+
+  // ─── INA219 startup diagnostics ────────────────────────────────────────────
+  // Report everything the INA219 can give us. These reads reflect whatever is
+  // present on Vin+/Vin- and are independent of the relay state (the relay only
+  // switches the load path; the INA219 senses the rail regardless).
+  if (!ina219Found) {
+    Serial.println("INA219: begin() FAILED - chip not detected on I2C bus (check wiring/address)");
+  } else {
+    Serial.println("INA219: detected, reading startup diagnostics...");
+    float shuntvoltage_mV = ina219.getShuntVoltage_mV();
+    float busvoltage_V    = ina219.getBusVoltage_V();
+    float current_mA      = ina219.getCurrent_mA();
+    float power_mW        = ina219.getPower_mW();
+    // Load voltage = bus voltage plus the drop across the shunt (shunt in mV -> V)
+    float loadvoltage_V   = busvoltage_V + (shuntvoltage_mV / 1000.0);
+
+    Serial.printf("INA219: Shunt voltage: %.3f mV\n", shuntvoltage_mV);
+    Serial.printf("INA219: Bus voltage:   %.3f V\n",  busvoltage_V);
+    Serial.printf("INA219: Load voltage:  %.3f V\n",  loadvoltage_V);
+    Serial.printf("INA219: Current:       %.3f mA\n", current_mA);
+    Serial.printf("INA219: Power:         %.3f mW\n", power_mW);
+    Serial.printf("INA219: last I2C op success: %s\n", ina219.success() ? "yes" : "no");
+  }
 
   // Mount filesystem (needed for console log and WiFi credentials)
   if (LittleFS.begin(false, "/littlefs", 10, "littlefs")) {

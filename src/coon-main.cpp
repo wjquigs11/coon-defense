@@ -28,6 +28,33 @@ char prbuf[PRBUF]; // PRBUF needs to be defined in include.h
 
 Adafruit_INA219 ina219;
 movingAvg shuntAvg(10);
+bool ina219Found = false;  // set by ina219.begin() in setup()
+
+// Read and log all available INA219 measurements. Uses log::toAll so the output
+// reaches the serial console, the on-device console log, and WebSerial. The
+// `context` string is prefixed so you can tell what triggered the reading
+// (e.g. "startup", "relay on", "relay off", "schedule").
+void logIna219Diagnostics(const char* context) {
+  if (!ina219Found) {
+    snprintf(logbuf, LOGBUF_SIZE,
+      "INA219 [%s]: not detected on I2C bus (check wiring/address)", context);
+    log::toAll(logbuf);
+    return;
+  }
+
+  float shuntvoltage_mV = ina219.getShuntVoltage_mV();
+  float busvoltage_V    = ina219.getBusVoltage_V();
+  float current_mA      = ina219.getCurrent_mA();
+  float power_mW        = ina219.getPower_mW();
+  // Load voltage = bus voltage plus the drop across the shunt (shunt mV -> V)
+  float loadvoltage_V   = busvoltage_V + (shuntvoltage_mV / 1000.0);
+
+  snprintf(logbuf, LOGBUF_SIZE,
+    "INA219 [%s]: shunt=%.3f mV  bus=%.3f V  load=%.3f V  current=%.3f mA  power=%.3f mW  ok=%s",
+    context, shuntvoltage_mV, busvoltage_V, loadvoltage_V, current_mA, power_mW,
+    ina219.success() ? "yes" : "no");
+  log::toAll(logbuf);
+}
 
 // ─── OTA callbacks ──────────────────────────────────────────────────────────────
 void onOTAStart() {
@@ -80,31 +107,16 @@ void setup() {
   // Setup custom panic handler
   setup_custom_panic_handler();
 
-  bool ina219Found = ina219.begin();
+  ina219Found = ina219.begin();
   shuntAvg.begin();
 
-  // ─── INA219 startup diagnostics ────────────────────────────────────────────
-  // Report everything the INA219 can give us. These reads reflect whatever is
-  // present on Vin+/Vin- and are independent of the relay state (the relay only
-  // switches the load path; the INA219 senses the rail regardless).
+  // Report startup readings. Note: log::toAll's file/WebSerial sinks aren't up
+  // yet this early, but it still prints to Serial; runtime relay events will
+  // additionally reach the console log and WebSerial.
   if (!ina219Found) {
     Serial.println("INA219: begin() FAILED - chip not detected on I2C bus (check wiring/address)");
-  } else {
-    Serial.println("INA219: detected, reading startup diagnostics...");
-    float shuntvoltage_mV = ina219.getShuntVoltage_mV();
-    float busvoltage_V    = ina219.getBusVoltage_V();
-    float current_mA      = ina219.getCurrent_mA();
-    float power_mW        = ina219.getPower_mW();
-    // Load voltage = bus voltage plus the drop across the shunt (shunt in mV -> V)
-    float loadvoltage_V   = busvoltage_V + (shuntvoltage_mV / 1000.0);
-
-    Serial.printf("INA219: Shunt voltage: %.3f mV\n", shuntvoltage_mV);
-    Serial.printf("INA219: Bus voltage:   %.3f V\n",  busvoltage_V);
-    Serial.printf("INA219: Load voltage:  %.3f V\n",  loadvoltage_V);
-    Serial.printf("INA219: Current:       %.3f mA\n", current_mA);
-    Serial.printf("INA219: Power:         %.3f mW\n", power_mW);
-    Serial.printf("INA219: last I2C op success: %s\n", ina219.success() ? "yes" : "no");
   }
+  logIna219Diagnostics("startup");
 
   // Mount filesystem (needed for console log and WiFi credentials)
   if (LittleFS.begin(false, "/littlefs", 10, "littlefs")) {

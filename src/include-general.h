@@ -128,13 +128,15 @@ extern unsigned long now;
 
 #define NUM_RELAYS 1
 #define relayGPIO 16
-#define RELAY_NO    true
+#define RELAY_NO    false
 extern bool relayState;
 
 #include <Adafruit_INA219.h>
 #include <movingAvg.h>
 extern Adafruit_INA219 ina219;
 extern movingAvg shuntAvg;
+extern bool ina219Found;
+void logIna219Diagnostics(const char* context);
 
 // Custom panic handler setup
 void setup_custom_panic_handler();

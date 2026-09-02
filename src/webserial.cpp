@@ -106,12 +106,14 @@ static void handleCommand(String dataS) {
     relayState = true;
     digitalWrite(relayGPIO, RELAY_NO ? LOW : HIGH);
     log::toAll("relay on");
+    logIna219Diagnostics("relay on");
     return;
   }
   if (cmd == "off") {
     relayState = false;
     digitalWrite(relayGPIO, RELAY_NO ? HIGH : LOW);
     log::toAll("relay off");
+    logIna219Diagnostics("relay off");
     return;
   }
 

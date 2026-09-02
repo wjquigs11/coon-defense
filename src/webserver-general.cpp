@@ -344,6 +344,8 @@ void startWebServer() {
         Serial.print("NC ");
         digitalWrite(relayGPIO, inputMessage2.toInt());
       }
+      relayState = (inputMessage2.toInt() != 0);
+      logIna219Diagnostics(relayState ? "web relay on" : "web relay off");
     }
     else {
       inputMessage = "No message sent";

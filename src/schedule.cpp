@@ -51,6 +51,7 @@ void triggerScheduleEvent(int scheduleIndex, JsonObject schedule) {
             }
             log::toAll("Relay " + String(relayNum) + " set to " + 
                       (relayState ? "ON" : "OFF"));
+            logIna219Diagnostics(relayState ? "schedule on" : "schedule off");
         }
     }
 }

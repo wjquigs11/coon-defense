@@ -106,6 +106,10 @@ void setup() {
   Serial.begin(115200); delay(300);
   startTime = millis();
 
+  // Report why the previous boot ended. This is especially useful for
+  // detecting brownouts or resets caused when the relay is energized.
+  Serial.printf("Reset reason: %d\n", (int)esp_reset_reason());
+
   // Setup custom panic handler
   setup_custom_panic_handler();
 
@@ -222,7 +226,10 @@ void setup() {
 #endif // WIFI
   log::flush();
   pinMode(relayGPIO,OUTPUT);
-  if (RELAY_NO) digitalWrite(relayGPIO,LOW);
+  // Put the relay in its inactive state explicitly. This avoids leaving the
+  // output at the GPIO's power-up level during startup.
+  digitalWrite(relayGPIO, RELAY_NO ? LOW : HIGH);
+  relayState = false;
 }
 
 static int loopcount = 0;

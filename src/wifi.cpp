@@ -67,7 +67,7 @@ bool readWiFiCredentials() {
       else if (file.isDirectory()) {
           Serial.println("Error: Path is a directory, not a file");
       }
-      else if (!LittleFS.begin()) {
+      else if (!LittleFS.begin(false, "/littlefs", 10, "littlefs")) {
           Serial.println("Error: LittleFS not mounted");
       }
       else if (LittleFS.totalBytes() == 0) {

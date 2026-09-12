@@ -4,4 +4,4 @@
 data/wifi.*
 src.small
 mock-server
-.cache
+.cache/*

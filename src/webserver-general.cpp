@@ -345,7 +345,9 @@ void startWebServer() {
         digitalWrite(relayGPIO, inputMessage2.toInt());
       }
       relayState = (inputMessage2.toInt() != 0);
+#ifdef INA219
       logIna219Diagnostics(relayState ? "web relay on" : "web relay off");
+#endif
     }
     else {
       inputMessage = "No message sent";

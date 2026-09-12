@@ -26,6 +26,7 @@ unsigned long now;
 struct tm *ptm;
 char prbuf[PRBUF]; // PRBUF needs to be defined in include.h
 
+#ifdef INA219
 Adafruit_INA219 ina219;
 movingAvg shuntAvg(10);
 bool ina219Found = false;  // set by ina219.begin() in setup()
@@ -55,6 +56,7 @@ void logIna219Diagnostics(const char* context) {
     ina219.success() ? "yes" : "no");
   log::toAll(logbuf);
 }
+#endif // INA219
 
 // ─── OTA callbacks ──────────────────────────────────────────────────────────────
 void onOTAStart() {
@@ -107,6 +109,7 @@ void setup() {
   // Setup custom panic handler
   setup_custom_panic_handler();
 
+#ifdef INA219
   ina219Found = ina219.begin();
   shuntAvg.begin();
 
@@ -117,6 +120,7 @@ void setup() {
     Serial.println("INA219: begin() FAILED - chip not detected on I2C bus (check wiring/address)");
   }
   logIna219Diagnostics("startup");
+#endif
 
   // Mount filesystem (needed for console log and WiFi credentials)
   if (LittleFS.begin(false, "/littlefs", 10, "littlefs")) {
@@ -290,6 +294,7 @@ void loop() {
     log::toAll(String(prbuf));
     consLog.flush();
 #endif
+#ifdef INA219
     float shuntvoltage = 0;
     float busvoltage = 0;
     float current_mA = 0;
@@ -343,6 +348,7 @@ void loop() {
     //Serial.print(">Load Voltage:  "); Serial.print(loadvoltage); Serial.println(" V");
     //Serial.print(">Current:       "); Serial.print(current_mA); Serial.println(" mA");
     //Serial.println("");
+#endif // INA219
 #if defined(WIFI)
     // Push latest readings to any connected web clients
     readings["lastUpdate"] = String(lastUpdate);

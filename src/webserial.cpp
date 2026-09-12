@@ -106,14 +106,18 @@ static void handleCommand(String dataS) {
     relayState = true;
     digitalWrite(relayGPIO, RELAY_NO ? LOW : HIGH);
     log::toAll("relay on");
+#ifdef INA219
     logIna219Diagnostics("relay on");
+#endif
     return;
   }
   if (cmd == "off") {
     relayState = false;
     digitalWrite(relayGPIO, RELAY_NO ? HIGH : LOW);
     log::toAll("relay off");
+#ifdef INA219
     logIna219Diagnostics("relay off");
+#endif
     return;
   }
 
@@ -175,7 +179,9 @@ static void handleCommand(String dataS) {
     log::toAll(logbuf);
     snprintf(logbuf, LOGBUF_SIZE, "relay: %s", relayState ? "on" : "off");
     log::toAll(logbuf);
+#ifdef INA219
     logIna219Diagnostics("status");
+#endif
     log::toAll(getSensorReadings().c_str());
     return;
   }

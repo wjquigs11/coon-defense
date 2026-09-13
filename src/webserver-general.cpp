@@ -172,7 +172,7 @@ void startWebServer() {
         else if (p->name() == "pass") password = p->value();
         else if (p->name() == "hostname" && p->value().length() > 0) {
           host = p->value();
-          coonPrefs.putString("hostname", host);
+          prefs.putString("hostname", host);
         }
       }
     }
@@ -324,6 +324,7 @@ void startWebServer() {
     request->send(404);
   });
 
+#ifdef COON
 // Send a GET request to <ESP_IP>/relayupdate?relay=<inputMessage>&state=<inputMessage2>
   server.on("/relayupdate", HTTP_GET, [] (AsyncWebServerRequest *request) {
     String inputMessage;
@@ -356,6 +357,6 @@ void startWebServer() {
     Serial.println(inputMessage + inputMessage2);
     request->send(200, "text/plain", "OK");
   });
-
+#endif // COON
 }
-#endif
+#endif // WIFI

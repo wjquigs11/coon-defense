@@ -257,7 +257,7 @@ void startPortal() {
         if(p->isPost()) {
           if (p->name() == PARAM_HOSTNAME && p->value().length() > 0) {
             host = p->value().c_str();
-            coonPrefs.putString("hostname", host);
+            prefs.putString("hostname", host);
             snprintf(logbuf, LOGBUF_SIZE, "host set to: %s", host.c_str());
             log::toAll(logbuf);
           }
@@ -343,7 +343,7 @@ void onWiFiConnected() {
   // Store the successfully connected SSID for next boot priority
   String connectedSSID = WiFi.SSID();
   if (connectedSSID.length() > 0) {
-    coonPrefs.putString("lastSSID", connectedSSID);
+    prefs.putString("lastSSID", connectedSSID);
     snprintf(logbuf, LOGBUF_SIZE, "Stored lastSSID: %s", connectedSSID.c_str());
     log::toAll(logbuf);
   }
@@ -531,7 +531,7 @@ bool setupWifi() {
     log::toAll("starting wifi");
 
     // Prioritize lastSSID from Preferences — move it to front of wifi[] array
-    String lastSSID = coonPrefs.getString("lastSSID", "");
+    String lastSSID = prefs.getString("lastSSID", "");
     if (lastSSID.length() > 0) {
       int foundIdx = -1;
       for (int i = 0; i < wifiCount; i++) {

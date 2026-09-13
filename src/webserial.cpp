@@ -85,12 +85,6 @@ static void handleCommand(String dataS) {
     for (int j = 0; j < ASIZE(commandList); j++)
       pos += snprintf(logbuf + pos, LOGBUF_SIZE - pos, " %s", commandList[j].c_str());
     log::toAll(logbuf);
-    if (ASIZE(appCommandList) > 0) {
-      pos = snprintf(logbuf, LOGBUF_SIZE, "app commands:");
-      for (int j = 0; j < ASIZE(appCommandList); j++)
-        pos += snprintf(logbuf + pos, LOGBUF_SIZE - pos, " %s", appCommandList[j].c_str());
-      log::toAll(logbuf);
-    }
     return;
   }
 
@@ -100,7 +94,7 @@ static void handleCommand(String dataS) {
     delay(100);
     ESP.restart();
   }
-
+#ifdef COON
   // ─── Relay control (coon-defense) ─────────────────────────────────────────
   if (cmd == "on") {
     relayState = true;
@@ -120,7 +114,7 @@ static void handleCommand(String dataS) {
 #endif
     return;
   }
-
+#endif
   // ─── I2C Scan ────────────────────────────────────────────────────────────
   if (cmd == "scan") {
     i2cScan(Wire);
@@ -135,7 +129,7 @@ static void handleCommand(String dataS) {
         return;
       }
       host = words[1];
-      coonPrefs.putString("hostname", host);
+      prefs.putString("hostname", host);
       snprintf(logbuf, LOGBUF_SIZE, "hostname set to %s (restart to apply)", host.c_str());
       log::toAll(logbuf);
     } else {
@@ -150,7 +144,7 @@ static void handleCommand(String dataS) {
     if (wordCount > 1 && words[1].length() > 0) {
       timerDelay = atoi(words[1].c_str());
       if (timerDelay < 100) timerDelay = 100;
-      coonPrefs.putInt("timerdelay", timerDelay);
+      prefs.putInt("timerdelay", timerDelay);
       snprintf(logbuf, LOGBUF_SIZE, "timerDelay set to %d", timerDelay);
       log::toAll(logbuf);
     } else {
@@ -177,10 +171,12 @@ static void handleCommand(String dataS) {
     log::toAll(logbuf);
     snprintf(logbuf, LOGBUF_SIZE, "uptime: %lu s", millis() / 1000);
     log::toAll(logbuf);
+#ifdef COON
     snprintf(logbuf, LOGBUF_SIZE, "relay: %s", relayState ? "on" : "off");
     log::toAll(logbuf);
 #ifdef INA219
     logIna219Diagnostics("status");
+#endif
 #endif
     log::toAll(getSensorReadings().c_str());
     return;
@@ -321,18 +317,8 @@ static void handleCommand(String dataS) {
         log::toAll(logbuf);
         return;
       }
-      if (togHandler) {
-        togHandler(&words[1], wordCount - 1);
-        return;
-      }
     }
     log::toAll("toggle {debug|log}");
-    return;
-  }
-
-  // ─── App-specific handler ────────────────────────────────────────────────
-  if (appHandler) {
-    appHandler(&words[0], wordCount);
     return;
   }
 

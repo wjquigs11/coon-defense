@@ -39,6 +39,7 @@ void triggerScheduleEvent(int scheduleIndex, JsonObject schedule) {
     JsonObject switches = schedule["switches"];
     
     for (JsonPair kv : switches) {
+#ifdef COON
         int relayNum = String(kv.key().c_str()).toInt();
         bool relayState = kv.value().as<bool>();
         
@@ -54,8 +55,8 @@ void triggerScheduleEvent(int scheduleIndex, JsonObject schedule) {
 #ifdef INA219
             logIna219Diagnostics(relayState ? "schedule on" : "schedule off");
 #endif
+#endif // COON
         }
-    }
 }
 
 // Main schedule checking function

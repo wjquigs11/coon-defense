@@ -70,11 +70,7 @@ bool loadSchedules();
 #include <WebSerialPro.h>
 void WebSerialonMessage(uint8_t *data, size_t len);
 void pollSerialConsole();
-extern String appCommandList[];
-extern String appToggleList[];
 using Handler = void(*)(String*, int);
-extern Handler appHandler;
-extern Handler togHandler;
 #endif
 #ifdef ELEGANTOTA
 #define ELEGANTOTA_USE_ASYNC_WEBSERVER 1
@@ -83,7 +79,7 @@ extern Handler togHandler;
 
 #include "logto.h"
 
-extern Preferences coonPrefs;
+extern Preferences prefs;
 extern Preferences waterPrefs;
 extern File consLog;
 
@@ -126,10 +122,14 @@ void print_wakeup_reason();
 
 extern unsigned long now;
 
+#ifdef COON
 #define NUM_RELAYS 1
 #define relayGPIO 16
 #define RELAY_NO    false
 extern bool relayState;
+extern void setupCoon();
+extern void loopCoon();
+#endif
 
 // Wire is needed independently of INA219 (webserial "scan" command uses I2C).
 // Previously it came in transitively via Adafruit_INA219.h.
@@ -147,14 +147,14 @@ void logIna219Diagnostics(const char* context);
 // Custom panic handler setup
 void setup_custom_panic_handler();
 
+#ifdef WATER
 void setupWater();
 void loopWater();
 void updateWaterReading();
 int getCachedWaterLevel();
 extern int minReadRate;
-
 float getWaterLevel();
 extern float tanktop, tankbottom, capacity;
 extern float distanceInch;
-
+#endif
 

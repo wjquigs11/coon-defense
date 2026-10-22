@@ -5,8 +5,6 @@
 bool relayState;
 bool trigger = false;
 
-Preferences prefs;
-
 #ifdef INA219
 Adafruit_INA219 ina219;
 movingAvg shuntAvg(10);

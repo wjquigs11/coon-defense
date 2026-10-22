@@ -55,8 +55,9 @@ void triggerScheduleEvent(int scheduleIndex, JsonObject schedule) {
 #ifdef INA219
             logIna219Diagnostics(relayState ? "schedule on" : "schedule off");
 #endif
-#endif // COON
         }
+#endif // COON
+    }
 }
 
 // Main schedule checking function

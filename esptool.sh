@@ -23,7 +23,7 @@ while [[ $i -le $# ]]; do
     ((i++))
 done
 
-esptool.py --chip esp32 --port $port --baud 460800 write_flash 0x10000 .pio/build/esp32dev/firmware.bin
+$HOME/.platformio/penv/bin/esptool.py --chip esp32 --port $port --baud 460800 write_flash 0x10000 .pio/build/esp32dev/firmware.bin
 
 if [[ "$run_miniterm" == true ]]; then
     /usr/bin/python3 -m serial.tools.miniterm $port 115200

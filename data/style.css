@@ -17,9 +17,6 @@ p {
 body {  
   margin: 0;
 }
-.reading { 
-  font-size: 2.8rem; 
-}
 
 .content {
   padding: 5%;
@@ -85,36 +82,6 @@ body {
   flex: 1;
   margin: 0.25em;
 }
-canvas {
-  max-width: 100%;
-  height: auto;
-  margin: 20px;
-  display: block;
-}
-
-/* Container for the gauge to ensure proper sizing and prevent cutoff */
-.gauge-container {
-  width: 100%;
-  max-width: 300px;
-  height: auto;
-  position: relative;
-  padding: 20px;
-  box-sizing: border-box;
-  overflow: visible;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  margin: 0 auto;
-}
-
-/* Ensure the gauge canvas has enough space */
-#gauge-coop {
-  width: 100%;
-  height: auto;
-  max-width: 300px;
-}
-
-
 
 /* On/off slider toggle switch */
 .switch {

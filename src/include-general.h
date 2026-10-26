@@ -56,7 +56,6 @@ void onWiFiConnected();
 void onWiFiDisconnected();
 String getSensorReadings();
 String coon_processor(const String& var);
-String rain_processor(const String& var);
 
 // Schedule management
 #define MAX_SCHEDULES 8
@@ -80,7 +79,6 @@ using Handler = void(*)(String*, int);
 #include "logto.h"
 
 extern Preferences prefs;
-extern Preferences waterPrefs;
 extern File consLog;
 
 // Timer variables
@@ -146,15 +144,4 @@ void logIna219Diagnostics(const char* context);
 
 // Custom panic handler setup
 void setup_custom_panic_handler();
-
-#ifdef WATER
-void setupWater();
-void loopWater();
-void updateWaterReading();
-int getCachedWaterLevel();
-extern int minReadRate;
-float getWaterLevel();
-extern float tanktop, tankbottom, capacity;
-extern float distanceInch;
-#endif
 

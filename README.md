@@ -12,9 +12,5 @@ For the second iteration, I bought a 12VDC ball valve, and set up a basic timer 
 
 For the third iteration, I swapped out the 3x1.5v lithium batteries in the sprinkler for a hard-wired connection to the ESP32. The sprinkler works fine on the ESP32 5v power supply. Now when it's off, it's really off. I also modified the interface code to configure schedules and made it a bit prettier. The sprinkler is powered through an INA219 current sensor, so I can check the logs to see how many times it triggered and know how active the vermin were last night.
 
-Incidentally, since the ESP32 is sitting beneath the deck, it shares functionality with the ultrasonic water sensor sitting above my rainwater tanks. This is awkward, since ESP32 MDNS cannot serve two hostnames from the same IP. I'm working on a fork of the library to correct this.
-
 The fourth iteration uses a different sprinkler, so I can only control power. Considering also using the ball valve on a separate relay.
-
-The ultrasonic sensor I used for water distance appeared to only work on 5vdc, and though it seemed to work, it would probably cause problems with the ESP32 eventually, so I switched to a different sensor module, which is documented in ultra-docs.
 

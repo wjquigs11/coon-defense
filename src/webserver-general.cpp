@@ -13,35 +13,6 @@ const char* PARAM_INPUT_2 = "state";
 void startWebServer() {
   log::toAll("starting web server");
 
-  server.on("/rain", HTTP_GET, [](AsyncWebServerRequest * request) {
-      log::toAll("raintank.html");
-      request->send(LittleFS, "/raintank.html", "text/html", false, [](const String& var) -> String { return rain_processor(var); });
-  });
-
-  // Update tank calibration (posted from raintank.html): tanktop, tankbottom, capacity
-  server.on("/config", HTTP_POST, [](AsyncWebServerRequest *request) {
-    int params = request->params();
-    for (int i = 0; i < params; i++) {
-      const AsyncWebParameter* p = request->getParam(i);
-      if (p->isPost()) {
-        if (p->name() == "tanktop") {
-          tanktop = atof(p->value().c_str());
-          waterPrefs.putFloat("tanktop", tanktop);
-        } else if (p->name() == "tankbottom") {
-          tankbottom = atof(p->value().c_str());
-          waterPrefs.putFloat("tankbottom", tankbottom);
-        } else if (p->name() == "capacity") {
-          capacity = atof(p->value().c_str());
-          waterPrefs.putFloat("capacity", capacity);
-        }
-      }
-    }
-    snprintf(logbuf, LOGBUF_SIZE, "config: top=%.2f bottom=%.2f cap=%.2f", tanktop, tankbottom, capacity);
-    log::toAll(logbuf);
-    // Return the refreshed tank page with the new values filled in
-    request->send(LittleFS, "/raintank.html", "text/html", false, [](const String& var) -> String { return rain_processor(var); });
-  });
-
   server.on("/coon", HTTP_GET, [](AsyncWebServerRequest * request) {
       log::toAll("coon.html");
       request->send(LittleFS, "/coon.html", "text/html", false, [](const String& var) -> String { return coon_processor(var); });
@@ -119,27 +90,15 @@ void startWebServer() {
     request->send(response);
   });
 
-  // Route the root URL based on which DNS name the client used to reach us.
-  // Both names resolve to the same IP, but the browser sends the requested
-  // name in the Host header, which request->host() exposes.
+  // Root serves the landing page (links to /coon and /schedule)
   server.on("/", HTTP_GET, [](AsyncWebServerRequest *request) {
-    String reqHost = request->host();
-    reqHost.toLowerCase();
-    log::toAll("root request via host: " + reqHost);
-    if (reqHost.indexOf("raintank") >= 0) {
-      request->redirect("/rain");
-    } else if (reqHost.indexOf("coon") >= 0) {
-      request->redirect("/coon");
-    } else {
-      // Fall back to serving index.html for any other name (or raw IP)
-      request->send(LittleFS, "/index.html", "text/html");
-    }
+    request->send(LittleFS, "/index.html", "text/html");
   });
 
   // Serve static files with proper MIME types
   server.serveStatic("/", LittleFS, "/");
 
-  // Request latest sensor readings
+  // Request latest status (relay state), used by schedule.js
   server.on("/readings", HTTP_GET, [](AsyncWebServerRequest *request) {
     AsyncWebServerResponse *response = request->beginResponse(200, "application/json", getSensorReadings());
     // Add CORS headers

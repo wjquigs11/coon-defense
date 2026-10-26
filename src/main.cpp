@@ -133,10 +133,6 @@ void setup() {
     prefs.putInt("timerdelay", 1000);
   }
   log::toAll("timerDelay " + String(timerDelay));
-#ifdef WATER
-  // set up ultrasonic water sensor
-  setupWater();
-#endif
 #ifdef COON
   setupCoon();
 #endif
@@ -205,10 +201,6 @@ void loop() {
 #endif
   now = millis();
   static unsigned long lastEventTime, lastTimeTime, startTime;
-#ifdef WATER
-  // loop ultrasonic water (non-blocking sampling)
-  loopWater();
-#endif
 #ifdef COON
   //loopCoon(); // currently no-op
 #endif
@@ -269,7 +261,7 @@ void loop() {
     consLog.flush();
 #endif
 #if defined(WIFI)
-    // Push latest readings to any connected web clients
+    // Push latest status (relay state) to any connected web clients
     readings["lastUpdate"] = String(lastUpdate);
     events.send(getSensorReadings().c_str(), "new_readings", now);
 #endif

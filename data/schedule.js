@@ -252,8 +252,9 @@ async function loadRelayState() {
     try {
         const response = await fetch('/readings');
         if (response.ok) {
-            // For now, we'll assume relay is off. You can implement actual state reading if needed.
-            document.getElementById('relayToggle').checked = false;
+            // /readings returns {"relay":"on"|"off", "time": ...}
+            const data = await response.json();
+            document.getElementById('relayToggle').checked = (data.relay === 'on');
         }
     } catch (error) {
         console.error('Error loading relay state:', error);

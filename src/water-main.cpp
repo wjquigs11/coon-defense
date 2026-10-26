@@ -1,8 +1,8 @@
 /*
   Ultrasonic water level sensor (non-blocking).
   Samples are collected one-at-a-time in loopWater() (every 60s) to avoid
-  blocking the main loop, which also services relays, schedules, and INA219
-  spike detection. getWaterLevel() averages the collected sample buffer.
+  blocking the main loop, which also services WiFi, the web server, and
+  WebSerial. getWaterLevel() averages the collected sample buffer.
 */
 
 #include "include-general.h"
@@ -31,6 +31,12 @@ unsigned long lastSampleTime = 0;
 // Cached level so getSensorReadings() never has to trigger a blocking read
 static int cachedWaterLevel = 0;
 
+// Max time to wait for an echo pulse, in microseconds.
+// TANKBOTTOM (~46 in / ~117 cm) round-trip at 0.034 cm/us is ~6900us.
+// 30000us (~5m round trip) gives generous headroom while keeping a failed
+// read from blocking the loop for the full default ~1s pulseIn timeout.
+#define ECHO_TIMEOUT_US 30000UL
+
 // Takes a single ultrasonic sensor reading without delays
 float takeSingleReading() {
   long duration;
@@ -42,10 +48,18 @@ float takeSingleReading() {
   digitalWrite(trigPin, HIGH);
   delayMicroseconds(10);
   digitalWrite(trigPin, LOW);
-  // Read echoPin, return the sound wave travel time in microseconds
-  duration = pulseIn(echoPin, HIGH);
+  // Read echoPin, return the sound wave travel time in microseconds.
+  // With a timeout so a missing echo doesn't block for ~1s.
+  duration = pulseIn(echoPin, HIGH, ECHO_TIMEOUT_US);
   // Calculate the distance
   float distance = (duration * SOUND_SPEED / 2) * CM_TO_INCH;
+  snprintf(logbuf, LOGBUF_SIZE,
+           "ultrasonic trig=%d echo=%d duration=%ld us distance=%.2f in",
+           trigPin, echoPin, duration, distance);
+  log::toAll(logbuf);
+  if (duration == 0) {
+    log::toAll("ultrasonic: pulseIn timed out (no echo) - check wiring/voltage/mode");
+  }
   return distance;
 }
 
@@ -76,7 +90,7 @@ float getWaterLevel() {
   return tankLevel;
 }
 
-// Refresh the cached level. Called from the periodic timer in coon-main loop.
+// Refresh the cached level. Called from loopWater() after each new sample.
 void updateWaterReading() {
   cachedWaterLevel = (int)getWaterLevel();
 }

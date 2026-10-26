@@ -55,15 +55,7 @@ void startPortal();
 void onWiFiConnected();
 void onWiFiDisconnected();
 String getSensorReadings();
-String coon_processor(const String& var);
 String rain_processor(const String& var);
-
-// Schedule management
-#define MAX_SCHEDULES 8
-extern JsonDocument scheduleData;
-void checkScheduleEvents();
-void triggerScheduleEvent(int scheduleIndex, JsonObject schedule);
-bool loadSchedules();
 #endif
 
 #ifdef WEBSERIAL
@@ -122,27 +114,8 @@ void print_wakeup_reason();
 
 extern unsigned long now;
 
-#ifdef COON
-#define NUM_RELAYS 1
-#define relayGPIO 16
-#define RELAY_NO    false
-extern bool relayState;
-extern void setupCoon();
-extern void loopCoon();
-#endif
-
-// Wire is needed independently of INA219 (webserial "scan" command uses I2C).
-// Previously it came in transitively via Adafruit_INA219.h.
+// Wire is used by the webserial "scan" command (I2C bus scan).
 #include <Wire.h>
-
-#ifdef INA219
-#include <Adafruit_INA219.h>
-#include <movingAvg.h>
-extern Adafruit_INA219 ina219;
-extern movingAvg shuntAvg;
-extern bool ina219Found;
-void logIna219Diagnostics(const char* context);
-#endif
 
 // Custom panic handler setup
 void setup_custom_panic_handler();

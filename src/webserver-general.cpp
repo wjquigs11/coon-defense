@@ -7,9 +7,6 @@
 AsyncWebServer server(HTTP_PORT);
 AsyncEventSource events("/events");
 
-const char* PARAM_INPUT_1 = "relay";  
-const char* PARAM_INPUT_2 = "state";
-
 void startWebServer() {
   log::toAll("starting web server");
 
@@ -42,98 +39,9 @@ void startWebServer() {
     request->send(LittleFS, "/raintank.html", "text/html", false, [](const String& var) -> String { return rain_processor(var); });
   });
 
-  server.on("/coon", HTTP_GET, [](AsyncWebServerRequest * request) {
-      log::toAll("coon.html");
-      request->send(LittleFS, "/coon.html", "text/html", false, [](const String& var) -> String { return coon_processor(var); });
-  });
-
-  server.on("/schedule", HTTP_GET, [](AsyncWebServerRequest * request) {
-      log::toAll("schedule.html");
-      request->send(LittleFS, "/schedule.html", "text/html");
-  });
-
-  // Get all schedules
-  server.on("/api/schedules", HTTP_GET, [](AsyncWebServerRequest *request) {
-    File file = LittleFS.open("/schedule.json", "r");
-    if (!file) {
-      request->send(500, "application/json", "{\"error\":\"Failed to open schedule file\"}");
-      return;
-    }
-    
-    String scheduleJson = file.readString();
-    file.close();
-    
-    AsyncWebServerResponse *response = request->beginResponse(200, "application/json", scheduleJson);
-    response->addHeader("Access-Control-Allow-Origin", "*");
-    response->addHeader("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE");
-    response->addHeader("Access-Control-Allow-Headers", "Content-Type");
-    request->send(response);
-  });
-
-  // Save schedules
-  server.on("/api/schedules", HTTP_POST, [](AsyncWebServerRequest *request){},
-    NULL,
-    [](AsyncWebServerRequest *request, uint8_t *data, size_t len, size_t index, size_t total) {
-      if (index + len == total) {
-        // Parse the JSON data
-        JsonDocument doc;
-        DeserializationError error = deserializeJson(doc, data, len);
-        
-        if (error) {
-          request->send(400, "application/json", "{\"error\":\"Invalid JSON\"}");
-          return;
-        }
-        
-        // Save to LittleFS
-        File file = LittleFS.open("/schedule.json", "w");
-        if (!file) {
-          request->send(500, "application/json", "{\"error\":\"Failed to save schedule\"}");
-          return;
-        }
-        
-        serializeJson(doc, file);
-        file.close();
-        
-        // Update the global schedule data
-        scheduleData.clear();
-        scheduleData = doc;
-        
-        log::toAll("Schedules updated");
-        
-        AsyncWebServerResponse *response = request->beginResponse(200, "application/json", "{\"success\":true}");
-        response->addHeader("Access-Control-Allow-Origin", "*");
-        response->addHeader("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE");
-        response->addHeader("Access-Control-Allow-Headers", "Content-Type");
-        request->send(response);
-      }
-    }
-  );
-
-  // Handle OPTIONS preflight for schedule API
-  server.on("/api/schedules", HTTP_OPTIONS, [](AsyncWebServerRequest *request) {
-    AsyncWebServerResponse *response = request->beginResponse(204);
-    response->addHeader("Access-Control-Allow-Origin", "*");
-    response->addHeader("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS");
-    response->addHeader("Access-Control-Allow-Headers", "Content-Type");
-    response->addHeader("Access-Control-Max-Age", "3600");
-    request->send(response);
-  });
-
-  // Route the root URL based on which DNS name the client used to reach us.
-  // Both names resolve to the same IP, but the browser sends the requested
-  // name in the Host header, which request->host() exposes.
+  // Root always goes to the rain tank page.
   server.on("/", HTTP_GET, [](AsyncWebServerRequest *request) {
-    String reqHost = request->host();
-    reqHost.toLowerCase();
-    log::toAll("root request via host: " + reqHost);
-    if (reqHost.indexOf("raintank") >= 0) {
-      request->redirect("/rain");
-    } else if (reqHost.indexOf("coon") >= 0) {
-      request->redirect("/coon");
-    } else {
-      // Fall back to serving index.html for any other name (or raw IP)
-      request->send(LittleFS, "/index.html", "text/html");
-    }
+    request->redirect("/rain");
   });
 
   // Serve static files with proper MIME types
@@ -323,40 +231,5 @@ void startWebServer() {
     // Handle not found for other requests
     request->send(404);
   });
-
-#ifdef COON
-// Send a GET request to <ESP_IP>/relayupdate?relay=<inputMessage>&state=<inputMessage2>
-  server.on("/relayupdate", HTTP_GET, [] (AsyncWebServerRequest *request) {
-    String inputMessage;
-    String inputParam;
-    String inputMessage2;
-    String inputParam2;
-    // GET input1 value on <ESP_IP>/relayupdate?relay=<inputMessage>
-    if (request->hasParam(PARAM_INPUT_1) & request->hasParam(PARAM_INPUT_2)) {
-      inputMessage = request->getParam(PARAM_INPUT_1)->value();
-      inputParam = PARAM_INPUT_1;
-      inputMessage2 = request->getParam(PARAM_INPUT_2)->value();
-      inputParam2 = PARAM_INPUT_2;
-      if(RELAY_NO){
-        Serial.print("NO ");
-        digitalWrite(relayGPIO, !inputMessage2.toInt());
-      }
-      else{
-        Serial.print("NC ");
-        digitalWrite(relayGPIO, inputMessage2.toInt());
-      }
-      relayState = (inputMessage2.toInt() != 0);
-#ifdef INA219
-      logIna219Diagnostics(relayState ? "web relay on" : "web relay off");
-#endif
-    }
-    else {
-      inputMessage = "No message sent";
-      inputParam = "none";
-    }
-    Serial.println(inputMessage + inputMessage2);
-    request->send(200, "text/plain", "OK");
-  });
-#endif // COON
 }
 #endif // WIFI

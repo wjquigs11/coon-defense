@@ -78,7 +78,7 @@ body {
 .button-row {
   display: flex;
   justify-content: center;
-  margin: 0.25 em;
+  margin: 0.25em;
 }
 
 .button-row button {
@@ -113,5 +113,3 @@ canvas {
   height: auto;
   max-width: 300px;
 }
-
-

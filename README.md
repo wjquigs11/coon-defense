@@ -1,20 +1,34 @@
-# Raccoon Defense System (RDS)
+# Rain Tank Level Monitor
 
-![evil coon](data/coon.jpeg)
+ESP32 firmware that measures rainwater tank level with an ultrasonic distance sensor and serves it over WiFi.
 
-I don't like raccoons. They hunt my chickens (sometimes successfully). They tear up the tiny patch of grass in my back yard. They are a nuisance. I don't like them.
+## Features
 
-I bought a motion sensor sprinkler online. It seemed like it worked...no more shredded sod clumps, or at least not as many. But the first time I wandered into the yard and was sprayed, I knew I needed to make it better.
+- Ultrasonic distance sampling (non-blocking, one sample every 60 s, averaged over the last 10)
+- Distance converted to gallons using configurable tank top, tank bottom, and capacity
+- Web UI at `/rain` with a live gauge (Server-Sent Events on `/events`) and a calibration form
+- JSON readings at `/readings`
+- WiFi manager / captive portal, mDNS, NTP time, ElegantOTA updates, WebSerial console
 
-For the first iteration, I connected the sprinkler to one of my summer irrigation valves. This wasn't a good idea. Those valves are controlled by solenoids and are not intended to be open 12+ hours at a time.
+## Hardware
 
-For the second iteration, I bought a 12VDC ball valve, and set up a basic timer ESP32 app. This worked OK, but even when the valve was closed, there was enough pressure in the hose to douse me once.
+The sensor is an HC-SR04-compatible RCWL-9610 module that runs on 2.8–5.5 V, so it can be powered from the ESP32's 3.3 V rail. Its datasheet is in [ultra-docs](ultra-docs/ultrasonic.md). The firmware uses GPIO mode (the module default).
 
-For the third iteration, I swapped out the 3x1.5v lithium batteries in the sprinkler for a hard-wired connection to the ESP32. The sprinkler works fine on the ESP32 5v power supply. Now when it's off, it's really off. I also modified the interface code to configure schedules and made it a bit prettier. The sprinkler is powered through an INA219 current sensor, so I can check the logs to see how many times it triggered and know how active the vermin were last night.
+| Sensor pin | ESP32 |
+|------------|-------|
+| Vcc        | 3.3 V |
+| Trig       | GPIO 17 |
+| Echo       | GPIO 19 |
+| Gnd        | GND   |
 
-Incidentally, since the ESP32 is sitting beneath the deck, it shares functionality with the ultrasonic water sensor sitting above my rainwater tanks. This is awkward, since ESP32 MDNS cannot serve two hostnames from the same IP. I'm working on a fork of the library to correct this.
+## Calibration
 
-The fourth iteration uses a different sprinkler, so I can only control power. Considering also using the ball valve on a separate relay.
+Tank geometry is stored in NVS (`raintank` namespace) and can be changed from the `/rain` page:
 
-The ultrasonic sensor I used for water distance appeared to only work on 5vdc, and though it seemed to work, it would probably cause problems with the ESP32 eventually, so I switched to a different sensor module, which is documented in ultra-docs.
+- `tanktop`: inches from the sensor to the water surface when full (default 5)
+- `tankbottom`: inches from the sensor to the water surface when empty (default 46)
+- `capacity`: total gallons (default 776)
 
+## Building
+
+PlatformIO project. Build the firmware and upload the `data/` folder as a LittleFS image.

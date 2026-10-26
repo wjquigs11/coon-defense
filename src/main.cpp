@@ -70,25 +70,11 @@ void setup() {
   Serial.begin(115200); delay(300);
   startTime = millis();
 
-  // Report why the previous boot ended. This is especially useful for
-  // detecting brownouts or resets caused when the relay is energized.
+  // Report why the previous boot ended (useful for spotting brownouts).
   Serial.printf("Reset reason: %d\n", (int)esp_reset_reason());
 
   // Setup custom panic handler
   setup_custom_panic_handler();
-
-#ifdef INA219
-  ina219Found = ina219.begin();
-  shuntAvg.begin();
-
-  // Report startup readings. Note: log::toAll's file/WebSerial sinks aren't up
-  // yet this early, but it still prints to Serial; runtime relay events will
-  // additionally reach the console log and WebSerial.
-  if (!ina219Found) {
-    Serial.println("INA219: begin() FAILED - chip not detected on I2C bus (check wiring/address)");
-  }
-  logIna219Diagnostics("startup");
-#endif
 
   // Mount filesystem (needed for console log and WiFi credentials)
   if (LittleFS.begin(false, "/littlefs", 10, "littlefs")) {
@@ -137,9 +123,6 @@ void setup() {
   // set up ultrasonic water sensor
   setupWater();
 #endif
-#ifdef COON
-  setupCoon();
-#endif
   wifiEnabled = prefs.getBool("wifi", true);
 #ifdef WIFI
   host = prefs.getString("hostname", host);
@@ -185,9 +168,6 @@ void setup() {
 
     log::toAll("HTTP server started");
 
-    // Load schedules from LittleFS
-    loadSchedules();
-
     // mDNS will be initialized by WiFi event handler when connected
   }
 #endif // WIFI
@@ -209,9 +189,6 @@ void loop() {
   // loop ultrasonic water (non-blocking sampling)
   loopWater();
 #endif
-#ifdef COON
-  //loopCoon(); // currently no-op
-#endif
 #ifdef WEBSERIAL
   // Dispatch a line typed on the serial console through the same
   // command handler used by the WebSerial interface.
@@ -231,9 +208,6 @@ void loop() {
     drdCleared = true;
     log::toAll("DRD timeout - cleared double reset flag");
   }
-
-  // Check schedule events
-  checkScheduleEvents();
 #endif
   if (!OTAinProgress && (now - lastEventTime > timerDelay || lastEventTime == 0)) {
     lastEventTime = now;

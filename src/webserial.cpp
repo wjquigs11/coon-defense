@@ -52,7 +52,7 @@ static void i2cScan(TwoWire& wire) {
 
 // ─── Command lists ─────────────────────────────────────────────────────────────
 
-static String commandList[] = {"restart", "hostname", "status", "wifi", "conslog", "littlefs", "toggle", "timer", "scan", "on", "off", ""};
+static String commandList[] = {"restart", "hostname", "status", "wifi", "conslog", "littlefs", "toggle", "timer", "scan", ""};
 static String toggleList[] = {"debug", "log", ""};
 
 // ─── Command handler ───────────────────────────────────────────────────────────
@@ -94,27 +94,6 @@ static void handleCommand(String dataS) {
     delay(100);
     ESP.restart();
   }
-#ifdef COON
-  // ─── Relay control (coon-defense) ─────────────────────────────────────────
-  if (cmd == "on") {
-    relayState = true;
-    digitalWrite(relayGPIO, RELAY_NO ? LOW : HIGH);
-    log::toAll("relay on");
-#ifdef INA219
-    logIna219Diagnostics("relay on");
-#endif
-    return;
-  }
-  if (cmd == "off") {
-    relayState = false;
-    digitalWrite(relayGPIO, RELAY_NO ? HIGH : LOW);
-    log::toAll("relay off");
-#ifdef INA219
-    logIna219Diagnostics("relay off");
-#endif
-    return;
-  }
-#endif
   // ─── I2C Scan ────────────────────────────────────────────────────────────
   if (cmd == "scan") {
     i2cScan(Wire);
@@ -171,13 +150,6 @@ static void handleCommand(String dataS) {
     log::toAll(logbuf);
     snprintf(logbuf, LOGBUF_SIZE, "uptime: %lu s", millis() / 1000);
     log::toAll(logbuf);
-#ifdef COON
-    snprintf(logbuf, LOGBUF_SIZE, "relay: %s", relayState ? "on" : "off");
-    log::toAll(logbuf);
-#ifdef INA219
-    logIna219Diagnostics("status");
-#endif
-#endif
     log::toAll(getSensorReadings().c_str());
     return;
   }
